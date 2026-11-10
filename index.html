@@ -136,8 +136,12 @@
   <p class="note">One platform box carries storage, apps, identity and observability. That is a single point of failure, and it is a budget decision, not the architecture I would choose. A Kubernetes cluster runs alongside it. Like any homelab, it is always in a state of flux, so read this page as a sketch of how things are built, not as a status report.</p>
   <div class="topo">
     <div class="row">
+      <div class="node"><small>Outside</small><strong>Internet</strong><span>Nothing published, no inbound app traffic</span></div>
+      <div class="node edge"><small>Remote access</small><strong>Mesh VPN</strong><span>Tailscale and self-hosted NetBird. All app access, through the firewall</span></div>
+    </div>
+    <div class="link"><i></i></div>
+    <div class="row">
       <div class="node edge"><small>Edge</small><strong>Firewall / router</strong><span>OPNsense · Suricata · CrowdSec</span></div>
-      <div class="node edge"><small>Remote access</small><strong>Mesh VPN</strong><span>Tailscale and self-hosted NetBird. No apps on the internet</span></div>
     </div>
     <div class="link"><i></i></div>
     <div class="row">
