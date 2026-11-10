@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mika Selin · homelab and DevOps</title>
-<meta name="description" content="Mika Selin: DevOps engineer and homelab builder. Self-hosted platform, segmented network, GitOps and retro audio.">
+<meta name="description" content="Mika Selin: full-stack and DevOps engineer, homelab builder. Self-hosted platform, segmented network, GitOps and retro audio.">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1420'/%3E%3Cpath d='M8 10l7 6-7 6' fill='none' stroke='%233ddc97' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M17 23h8' stroke='%235cc8ff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
@@ -116,8 +116,8 @@
 <header id="top"><div class="wrap">
   <div class="prompt"><b>❯</b> whoami</div>
   <h1>Mika Selin</h1>
-  <div class="typed" id="typed" aria-label="DevOps engineer and homelab builder">DevOps engineer · homelab builder</div>
-  <p class="lede">I build and run infrastructure for a living, then go home and do it again for fun. This is the public window into the lab: how it is put together, what it runs, and the code that makes it out into the open.</p>
+  <div class="typed" id="typed" aria-label="Full-stack and DevOps engineer, homelab builder">Full-stack and DevOps engineer · homelab builder</div>
+  <p class="lede">I build software and run the infrastructure under it for a living, full stack and DevOps, then go home and do it again for fun. This is the public window into the lab: how it is put together, what it runs, and the code that makes it out into the open.</p>
   <div class="cta">
     <a class="btn primary" href="#lab">Tour the lab</a>
     <a class="btn" href="https://github.com/mselin" rel="me">GitHub</a>
@@ -183,6 +183,7 @@
     <div class="card"><h3>Storage and backup</h3><p>Double-parity bulk pool, mirrored SSDs for app data, encryption on every dataset.</p><div class="tags"><span>ZFS</span><span>RAIDZ2</span><span>snapshots</span><span>replication</span></div></div>
     <div class="card"><h3>Kubernetes</h3><p>An immutable-OS cluster on mini PCs, reconciled from Git and patched by bots.</p><div class="tags"><a href="https://github.com/siderolabs/talos">Talos</a><a href="https://github.com/cilium/cilium">Cilium</a><a href="https://github.com/fluxcd/flux2">Flux</a><a href="https://github.com/cert-manager/cert-manager">cert-manager</a><a href="https://github.com/external-secrets/external-secrets">External Secrets</a><a href="https://github.com/renovatebot/renovate">Renovate</a><a href="https://github.com/aquasecurity/trivy">Trivy</a></div></div>
     <div class="card"><h3>Containers and dev environments</h3><p>Reproducible, sandboxed project environments that work the same on every machine.</p><div class="tags"><a href="https://github.com/moby/moby">Docker</a><a href="https://github.com/containers/podman">Podman</a><a href="https://github.com/devcontainers/spec">Dev Containers</a></div></div>
+    <div class="card"><h3>Languages</h3><p>Full stack, from services and tooling to the glue scripts that hold a lab together.</p><div class="tags"><span>Python</span><span>TypeScript</span><span>Go</span><span>C#</span><span>Bash</span></div></div>
     <div class="card"><h3>Shell and dotfiles</h3><p>The same terminal on every machine, with tmux sessions that survive reboots and dotfiles kept in sync.</p><div class="tags"><a href="https://github.com/zsh-users/zsh">zsh</a><a href="https://github.com/ohmyzsh/ohmyzsh">Oh My Zsh</a><a href="https://github.com/tmux/tmux">tmux</a><a href="https://github.com/tmux-plugins/tpm">tpm</a><a href="https://github.com/tmux-plugins/tmux-continuum">continuum</a><a href="https://github.com/tmux-plugins/tmux-resurrect">resurrect</a><a href="https://github.com/twpayne/chezmoi">chezmoi</a></div></div>
   </div>
 </div></section>
@@ -197,7 +198,7 @@
     <div class="card"><h3>Media</h3><p>Films, music, audiobooks, ebooks and photos, with hardware transcoding.</p><div class="tags"><a href="https://github.com/jellyfin/jellyfin">Jellyfin</a><a href="https://github.com/CyferShepard/Jellystat">Jellystat</a><a href="https://github.com/navidrome/navidrome">Navidrome</a><a href="https://github.com/LMS-Community/slimserver">Lyrion</a><a href="https://github.com/advplyr/audiobookshelf">Audiobookshelf</a><a href="https://github.com/Kareadita/Kavita">Kavita</a><a href="https://github.com/immich-app/immich">Immich</a><a href="https://github.com/HaveAGitGat/Tdarr">Tdarr</a><a href="https://github.com/alexta69/metube">MeTube</a></div></div>
     <div class="card"><h3>Monitoring</h3><p>One page showing the health of every layer, from the firewall and Wi-Fi to the UPS.</p><div class="tags"><a href="https://github.com/prometheus/prometheus">Prometheus</a><a href="https://github.com/prometheus/alertmanager">Alertmanager</a><a href="https://github.com/grafana/grafana">Grafana</a><a href="https://github.com/louislam/uptime-kuma">Uptime Kuma</a><a href="https://github.com/binwiederhier/ntfy">ntfy</a><a href="https://github.com/wazuh/wazuh">Wazuh</a><a href="https://github.com/crowdsecurity/crowdsec">CrowdSec</a><a href="https://github.com/portainer/portainer">Portainer</a><a href="https://github.com/traefik/traefik">Traefik</a><a href="https://github.com/goauthentik/authentik">Authentik</a><a href="https://github.com/AdguardTeam/AdGuardHome">AdGuard Home</a><span>UniFi Network</span><a href="https://github.com/networkupstools/nut">NUT</a><a href="https://github.com/gethomepage/homepage">Homepage</a></div></div>
     <div class="card"><h3>Home automation</h3><p>The house on one dashboard, with cameras recorded and analysed locally.</p><div class="tags"><a href="https://github.com/home-assistant/core">Home Assistant</a><a href="https://github.com/blakeblackshear/frigate">Frigate</a></div></div>
-    <div class="card"><h3>Daily drivers</h3><p>CachyOS on the desk for work and Linux gaming, macOS on the laptop, and Windows, though less and less these days.</p><div class="tags"><span>CachyOS</span><span>macOS</span><span>Windows</span><span>Linux gaming</span><span>NixOS</span><span>Debian</span><span>Bash</span><span>Python</span></div></div>
+    <div class="card"><h3>Daily drivers</h3><p>CachyOS on the desk for work and Linux gaming, macOS on the laptop, and Windows, though less and less these days.</p><div class="tags"><span>CachyOS</span><span>macOS</span><span>Windows</span><span>Linux gaming</span><span>NixOS</span><span>Debian</span></div></div>
   </div>
 </div></section>
 
@@ -220,7 +221,7 @@
 (() => {
   const el = document.getElementById('typed');
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const lines = ['DevOps engineer · homelab builder', 'ZFS, containers and GitOps', 'SSO in front of everything', 'C64 SID tunes on real hardware'];
+  const lines = ['Full-stack and DevOps engineer · homelab builder', 'Python, TypeScript, Go and C#', 'ZFS, containers and GitOps', 'SSO in front of everything', 'C64 SID tunes on real hardware'];
   let l = 0, i = 0, del = false;
   el.textContent = '';
   (function tick() {
