@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mika Selin · homelab and DevOps</title>
-<meta name="description" content="Mika Selin: full-stack and DevOps engineer, homelab builder. Self-hosted platform, segmented network, GitOps and retro audio.">
+<meta name="description" content="Mika Selin: full-stack and DevOps engineer. Notes on my homelab and what runs in it.">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1420'/%3E%3Cpath d='M8 10l7 6-7 6' fill='none' stroke='%233ddc97' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M17 23h8' stroke='%235cc8ff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
@@ -118,7 +118,7 @@
   <div class="prompt"><b>❯</b> whoami</div>
   <h1>Mika Selin</h1>
   <div class="typed" id="typed" aria-label="Full-stack and DevOps engineer, homelab builder">Full-stack and DevOps engineer · homelab builder</div>
-  <p class="lede">I build software and run the infrastructure under it for a living, full stack and DevOps, then go home and do it again for fun. This is the public window into the lab: how it is put together, what it runs, and the code that makes it out into the open.</p>
+  <p class="lede">I do full-stack and DevOps work for a living and run a homelab on the side. This page describes how the lab is built and what runs in it.</p>
   <div class="cta">
     <a class="btn primary" href="#lab">Tour the lab</a>
     <a class="btn" href="https://github.com/mselin" rel="me">GitHub</a>
@@ -133,8 +133,8 @@
 
 <section id="lab"><div class="wrap">
   <h2>homelab</h2>
-  <p class="sub">A learning lab: hard-walled network, apps reachable only over a mesh VPN</p>
-  <p class="note">One platform box carries storage, apps, identity and observability. That is a single point of failure, and it is a budget decision, not the architecture I would choose. A Kubernetes cluster runs alongside it. Like any homelab, it is always in a state of flux, so read this page as a sketch of how things are built, not as a status report.</p>
+  <p class="sub">A lab for learning. Segmented network, apps only over VPN.</p>
+  <p class="note">Storage, apps, identity and monitoring all run on one box. That is a single point of failure, and I'd build it differently with a bigger budget. There is also a Kubernetes cluster. Things change here all the time, so this page shows how the lab is built, not what state it is in today.</p>
   <div class="topo">
     <div class="row">
       <div class="node"><small>Outside</small><strong>Internet</strong><span>Nothing published, no inbound app traffic</span></div>
@@ -166,16 +166,16 @@
   <h2>principles</h2>
   <p class="sub">How it is run</p>
   <ul class="principles">
-    <li><b>Built to learn.</b> Things get tried, broken and rebuilt here, and the trade-offs are written down honestly.</li>
-    <li><b>VPN or nothing.</b> No app is published to the internet; every service is reached over the mesh VPN.</li>
-    <li><b>SSO in front of everything.</b> Every app sits behind the reverse proxy and the identity provider.</li>
-    <li><b>The DMZ is a hard wall.</b> No LAN access, external DNS only, limited egress with narrow per-host exceptions.</li>
-    <li><b>Egress is allow-listed.</b> The DMZ and the AI stack can only reach out to what they need.</li>
-    <li><b>Git is the source of truth.</b> Compose stacks, manifests and runbooks live in Forgejo, with work tracked as issues.</li>
-    <li><b>Redundancy is not a backup.</b> Snapshots, encrypted replication to separate hardware, and scheduled restore tests.</li>
-    <li><b>Secrets out of config.</b> Apps get them from OpenBao with short-lived, per-app access.</li>
-    <li><b>Works without the internet.</b> Important upstream repos are mirrored locally, and reference wikis such as Wikipedia and iFixit are kept offline with Kiwix.</li>
-    <li><b>Observe, then alert.</b> Metrics, logs and security events in one place, with notifications that mean something.</li>
+    <li><b>Built to learn.</b> I try things here, break them and rebuild them.</li>
+    <li><b>VPN only.</b> No app is published to the internet.</li>
+    <li><b>SSO on everything.</b> Every app is behind the reverse proxy and Authentik.</li>
+    <li><b>Isolated DMZ.</b> No LAN access, external DNS only, limited egress.</li>
+    <li><b>Allow-listed egress.</b> The DMZ and the AI stack only reach what they need.</li>
+    <li><b>Everything in Git.</b> Compose stacks, manifests and runbooks are in Forgejo, and work is tracked as issues there.</li>
+    <li><b>Real backups.</b> Snapshots, encrypted replication to another machine, and restore tests.</li>
+    <li><b>Secrets in OpenBao.</b> Apps get their own short-lived access instead of env files.</li>
+    <li><b>Works offline.</b> Important repos are mirrored locally, and Wikipedia and iFixit are available through Kiwix.</li>
+    <li><b>Monitoring in one place.</b> Metrics, logs and security events are collected centrally, and alerts go out through ntfy.</li>
   </ul>
 </div></section>
 
@@ -183,42 +183,42 @@
   <h2>stack</h2>
   <p class="sub">What runs there</p>
   <div class="grid">
-    <div class="card"><h3>Ingress and identity</h3><p>One front door for every app, with single sign-on in front of it, and nginx where raw performance matters.</p><div class="tags"><a href="https://github.com/traefik/traefik">Traefik</a><a href="https://github.com/goauthentik/authentik">Authentik</a><span>OIDC</span><a href="https://github.com/nginx/nginx">nginx</a></div></div>
-    <div class="card"><h3>Remote access</h3><p>Mesh VPN only, with controlled access through the firewall. Nothing is published to the internet.</p><div class="tags"><a href="https://github.com/tailscale/tailscale">Tailscale</a><a href="https://github.com/netbirdio/netbird">NetBird</a><a href="https://github.com/WireGuard/wireguard-tools">WireGuard</a></div></div>
-    <div class="card"><h3>Observability</h3><p>Metrics, logs and uptime checks feeding dashboards and push notifications.</p><div class="tags"><a href="https://github.com/prometheus/prometheus">Prometheus</a><a href="https://github.com/prometheus/alertmanager">Alertmanager</a><a href="https://github.com/grafana/grafana">Grafana</a><a href="https://github.com/grafana/loki">Loki</a><a href="https://github.com/grafana/alloy">Alloy</a><a href="https://github.com/louislam/uptime-kuma">Uptime Kuma</a><a href="https://github.com/binwiederhier/ntfy">ntfy</a></div></div>
-    <div class="card"><h3>Security</h3><p>Crowd-sourced blocking at the edge and proxy, network and host-level detection, central secrets, a password manager that stays at home, and a UPS controlled by NUT (upsd).</p><div class="tags"><a href="https://github.com/crowdsecurity/crowdsec">CrowdSec</a><a href="https://github.com/wolffcatskyy/crowdsec-blocklist-import">crowdsec-blocklist-import</a><a href="https://github.com/OISF/suricata">Suricata</a><a href="https://github.com/wazuh/wazuh">Wazuh</a><a href="https://github.com/dani-garcia/vaultwarden">Vaultwarden</a><a href="https://github.com/openbao/openbao">OpenBao</a><a href="https://github.com/networkupstools/nut">NUT</a></div></div>
+    <div class="card"><h3>Ingress and identity</h3><p>Traefik in front of every app, with Authentik for single sign-on. nginx when it needs to be fast.</p><div class="tags"><a href="https://github.com/traefik/traefik">Traefik</a><a href="https://github.com/goauthentik/authentik">Authentik</a><span>OIDC</span><a href="https://github.com/nginx/nginx">nginx</a></div></div>
+    <div class="card"><h3>Remote access</h3><p>Mesh VPN only, through the firewall. Nothing is published to the internet.</p><div class="tags"><a href="https://github.com/tailscale/tailscale">Tailscale</a><a href="https://github.com/netbirdio/netbird">NetBird</a><a href="https://github.com/WireGuard/wireguard-tools">WireGuard</a></div></div>
+    <div class="card"><h3>Observability</h3><p>Metrics, logs and uptime checks, with dashboards and push notifications.</p><div class="tags"><a href="https://github.com/prometheus/prometheus">Prometheus</a><a href="https://github.com/prometheus/alertmanager">Alertmanager</a><a href="https://github.com/grafana/grafana">Grafana</a><a href="https://github.com/grafana/loki">Loki</a><a href="https://github.com/grafana/alloy">Alloy</a><a href="https://github.com/louislam/uptime-kuma">Uptime Kuma</a><a href="https://github.com/binwiederhier/ntfy">ntfy</a></div></div>
+    <div class="card"><h3>Security</h3><p>Blocking at the edge and the proxy, network and host intrusion detection, secrets management, a self-hosted password manager, and a UPS run by NUT (upsd).</p><div class="tags"><a href="https://github.com/crowdsecurity/crowdsec">CrowdSec</a><a href="https://github.com/wolffcatskyy/crowdsec-blocklist-import">crowdsec-blocklist-import</a><a href="https://github.com/OISF/suricata">Suricata</a><a href="https://github.com/wazuh/wazuh">Wazuh</a><a href="https://github.com/dani-garcia/vaultwarden">Vaultwarden</a><a href="https://github.com/openbao/openbao">OpenBao</a><a href="https://github.com/networkupstools/nut">NUT</a></div></div>
     <div class="card"><h3>Storage and backup</h3><p>TrueNAS on ZFS: RAIDZ pools, encryption on every dataset, snapshots and replication.</p><div class="tags"><a href="https://github.com/truenas">TrueNAS</a><a href="https://github.com/openzfs/zfs">ZFS</a><span>RAIDZ</span><span>snapshots</span><span>replication</span></div></div>
-    <div class="card"><h3>Offline resilience</h3><p>Built to keep working through a long internet outage, with the code and knowledge it depends on held locally.</p><div class="tags"><span>repo mirrors</span><a href="https://github.com/kiwix/kiwix-tools">Kiwix</a><span>Wikipedia</span><span>iFixit</span></div></div>
-    <div class="card"><h3>Kubernetes</h3><p>An immutable-OS cluster on mini PCs, reconciled from Git and patched by bots.</p><div class="tags"><a href="https://github.com/siderolabs/talos">Talos</a><a href="https://github.com/cilium/cilium">Cilium</a><a href="https://github.com/fluxcd/flux2">Flux</a><a href="https://github.com/cert-manager/cert-manager">cert-manager</a><a href="https://github.com/external-secrets/external-secrets">External Secrets</a><a href="https://github.com/renovatebot/renovate">Renovate</a><a href="https://github.com/aquasecurity/trivy">Trivy</a></div></div>
-    <div class="card"><h3>Containers and dev environments</h3><p>Reproducible, sandboxed project environments that work the same on every machine.</p><div class="tags"><a href="https://github.com/moby/moby">Docker</a><a href="https://github.com/containers/podman">Podman</a><a href="https://github.com/devcontainers/spec">Dev Containers</a></div></div>
-    <div class="card"><h3>Languages and frameworks</h3><p>Full stack, from services and tooling to the glue scripts that hold a lab together.</p><div class="tags"><a href="https://github.com/python/cpython">Python</a><a href="https://github.com/microsoft/TypeScript">TypeScript</a><a href="https://github.com/golang/go">Go</a><a href="https://github.com/dotnet/csharplang">C#</a><span>Bash</span><a href="https://github.com/nodejs/node">Node.js</a><a href="https://github.com/facebook/react">React</a></div></div>
-    <div class="card"><h3>Shell and dotfiles</h3><p>The same terminal on every machine, with tmux sessions that survive reboots and dotfiles kept in sync.</p><div class="tags"><a href="https://github.com/zsh-users/zsh">zsh</a><a href="https://github.com/ohmyzsh/ohmyzsh">Oh My Zsh</a><a href="https://github.com/tmux/tmux">tmux</a><a href="https://github.com/tmux-plugins/tpm">tpm</a><a href="https://github.com/tmux-plugins/tmux-continuum">continuum</a><a href="https://github.com/tmux-plugins/tmux-resurrect">resurrect</a><a href="https://github.com/twpayne/chezmoi">chezmoi</a></div></div>
+    <div class="card"><h3>Offline resilience</h3><p>Should keep working through a long internet outage. The repos and wikis it depends on are stored locally.</p><div class="tags"><span>repo mirrors</span><a href="https://github.com/kiwix/kiwix-tools">Kiwix</a><span>Wikipedia</span><span>iFixit</span></div></div>
+    <div class="card"><h3>Kubernetes</h3><p>Talos cluster on mini PCs, deployed from Git with Flux and kept up to date by Renovate.</p><div class="tags"><a href="https://github.com/siderolabs/talos">Talos</a><a href="https://github.com/cilium/cilium">Cilium</a><a href="https://github.com/fluxcd/flux2">Flux</a><a href="https://github.com/cert-manager/cert-manager">cert-manager</a><a href="https://github.com/external-secrets/external-secrets">External Secrets</a><a href="https://github.com/renovatebot/renovate">Renovate</a><a href="https://github.com/aquasecurity/trivy">Trivy</a></div></div>
+    <div class="card"><h3>Containers and dev environments</h3><p>Sandboxed project environments that work the same on every machine.</p><div class="tags"><a href="https://github.com/moby/moby">Docker</a><a href="https://github.com/containers/podman">Podman</a><a href="https://github.com/devcontainers/spec">Dev Containers</a></div></div>
+    <div class="card"><h3>Languages and frameworks</h3><p>What I write code in, at work and for the lab.</p><div class="tags"><a href="https://github.com/python/cpython">Python</a><a href="https://github.com/microsoft/TypeScript">TypeScript</a><a href="https://github.com/golang/go">Go</a><a href="https://github.com/dotnet/csharplang">C#</a><span>Bash</span><a href="https://github.com/nodejs/node">Node.js</a><a href="https://github.com/facebook/react">React</a></div></div>
+    <div class="card"><h3>Shell and dotfiles</h3><p>Same shell setup on every machine. tmux sessions survive reboots, and chezmoi keeps the dotfiles in sync.</p><div class="tags"><a href="https://github.com/zsh-users/zsh">zsh</a><a href="https://github.com/ohmyzsh/ohmyzsh">Oh My Zsh</a><a href="https://github.com/tmux/tmux">tmux</a><a href="https://github.com/tmux-plugins/tpm">tpm</a><a href="https://github.com/tmux-plugins/tmux-continuum">continuum</a><a href="https://github.com/tmux-plugins/tmux-resurrect">resurrect</a><a href="https://github.com/twpayne/chezmoi">chezmoi</a></div></div>
   </div>
 </div></section>
 
 <section id="apps"><div class="wrap">
   <h2>apps</h2>
   <p class="sub">The app stack</p>
-  <p class="note">Everything sits behind SSO, is kept as Compose files in Git, and is grouped on a Homepage dashboard the same way as here. Each name links to the project behind it.</p>
+  <p class="note">Every app is behind SSO and defined as a Compose file in Git. The groups below match my Homepage dashboard.</p>
   <div class="grid">
-    <div class="card"><h3>AI</h3><p>Local models behind one gateway, with improved observability, sandboxing and limited egress. Spec-driven agent work runs inside a hardened Dev Container.</p><div class="tags"><a href="https://github.com/mostlygeek/llama-swap">llama-swap</a><a href="https://github.com/ollama/ollama">Ollama</a><a href="https://github.com/BerriAI/litellm">LiteLLM</a><a href="https://github.com/Mintplex-Labs/anything-llm">AnythingLLM</a><a href="https://github.com/Niko1221/Strata">Strata</a><a href="https://github.com/bmad-code-org/BMAD-METHOD">BMAD</a><a href="https://github.com/github/spec-kit">Spec Kit</a><a href="https://github.com/devcontainers/spec">Dev Container</a></div></div>
-    <div class="card"><h3>Tools</h3><p>Code, files, notes, wiki, bookmarks, recipes, inventory, notebooks and the odd network utility.</p><div class="tags"><a href="https://codeberg.org/forgejo/forgejo">Forgejo</a><a href="https://github.com/nextcloud/server">Nextcloud</a><a href="https://github.com/BookStackApp/BookStack">BookStack</a><a href="https://github.com/TriliumNext/Trilium">Trilium Notes</a><a href="https://github.com/laurent22/joplin">Joplin</a><a href="https://github.com/wallabag/wallabag">Wallabag</a><a href="https://github.com/karakeep-app/karakeep">Karakeep</a><a href="https://github.com/mealie-recipes/mealie">Mealie</a><a href="https://github.com/sysadminsmedia/homebox">Homebox</a><a href="https://github.com/jgraph/drawio">Draw.io</a><a href="https://github.com/coder/code-server">Code Server</a><a href="https://github.com/jupyterlab/jupyterlab">JupyterLab</a><a href="https://github.com/pgadmin-org/pgadmin4">pgAdmin</a><a href="https://github.com/syncthing/syncthing">Syncthing</a><a href="https://github.com/filebrowser/filebrowser">Filebrowser</a><a href="https://github.com/dani-garcia/vaultwarden">Vaultwarden</a><a href="https://github.com/alexjustesen/speedtest-tracker">Speedtest Tracker</a><a href="https://github.com/openspeedtest/Speed-Test">Open Speedtest</a><a href="https://github.com/maelgangloff/domain-watchdog">Domain Watchdog</a></div></div>
+    <div class="card"><h3>AI</h3><p>Local models behind a LiteLLM gateway. Sandboxed, with limited egress and improved observability. BMAD and Spec Kit run in a hardened Dev Container.</p><div class="tags"><a href="https://github.com/mostlygeek/llama-swap">llama-swap</a><a href="https://github.com/ollama/ollama">Ollama</a><a href="https://github.com/BerriAI/litellm">LiteLLM</a><a href="https://github.com/Mintplex-Labs/anything-llm">AnythingLLM</a><a href="https://github.com/Niko1221/Strata">Strata</a><a href="https://github.com/bmad-code-org/BMAD-METHOD">BMAD</a><a href="https://github.com/github/spec-kit">Spec Kit</a><a href="https://github.com/devcontainers/spec">Dev Container</a></div></div>
+    <div class="card"><h3>Tools</h3><p>Code, files, notes, wiki, bookmarks, recipes, inventory and notebooks.</p><div class="tags"><a href="https://codeberg.org/forgejo/forgejo">Forgejo</a><a href="https://github.com/nextcloud/server">Nextcloud</a><a href="https://github.com/BookStackApp/BookStack">BookStack</a><a href="https://github.com/TriliumNext/Trilium">Trilium Notes</a><a href="https://github.com/laurent22/joplin">Joplin</a><a href="https://github.com/wallabag/wallabag">Wallabag</a><a href="https://github.com/karakeep-app/karakeep">Karakeep</a><a href="https://github.com/mealie-recipes/mealie">Mealie</a><a href="https://github.com/sysadminsmedia/homebox">Homebox</a><a href="https://github.com/jgraph/drawio">Draw.io</a><a href="https://github.com/coder/code-server">Code Server</a><a href="https://github.com/jupyterlab/jupyterlab">JupyterLab</a><a href="https://github.com/pgadmin-org/pgadmin4">pgAdmin</a><a href="https://github.com/syncthing/syncthing">Syncthing</a><a href="https://github.com/filebrowser/filebrowser">Filebrowser</a><a href="https://github.com/dani-garcia/vaultwarden">Vaultwarden</a><a href="https://github.com/alexjustesen/speedtest-tracker">Speedtest Tracker</a><a href="https://github.com/openspeedtest/Speed-Test">Open Speedtest</a><a href="https://github.com/maelgangloff/domain-watchdog">Domain Watchdog</a></div></div>
     <div class="card"><h3>Media</h3><p>Films, music, audiobooks, ebooks and photos, with hardware transcoding.</p><div class="tags"><a href="https://github.com/jellyfin/jellyfin">Jellyfin</a><a href="https://github.com/CyferShepard/Jellystat">Jellystat</a><a href="https://github.com/navidrome/navidrome">Navidrome</a><a href="https://github.com/LMS-Community/slimserver">Lyrion</a><a href="https://github.com/advplyr/audiobookshelf">Audiobookshelf</a><a href="https://github.com/Kareadita/Kavita">Kavita</a><a href="https://github.com/immich-app/immich">Immich</a><a href="https://github.com/HaveAGitGat/Tdarr">Tdarr</a><a href="https://github.com/alexta69/metube">MeTube</a><a href="https://github.com/automatic-ripping-machine/automatic-ripping-machine">Automatic Ripping Machine</a></div></div>
-    <div class="card"><h3>Monitoring</h3><p>One page showing the health of every layer, from the firewall and Wi-Fi to the UPS.</p><div class="tags"><a href="https://github.com/prometheus/prometheus">Prometheus</a><a href="https://github.com/prometheus/alertmanager">Alertmanager</a><a href="https://github.com/grafana/grafana">Grafana</a><a href="https://github.com/louislam/uptime-kuma">Uptime Kuma</a><a href="https://github.com/binwiederhier/ntfy">ntfy</a><a href="https://github.com/wazuh/wazuh">Wazuh</a><a href="https://github.com/crowdsecurity/crowdsec">CrowdSec</a><a href="https://github.com/portainer/portainer">Portainer</a><a href="https://github.com/traefik/traefik">Traefik</a><a href="https://github.com/goauthentik/authentik">Authentik</a><a href="https://github.com/AdguardTeam/AdGuardHome">AdGuard Home</a><span>UniFi Network</span><a href="https://github.com/networkupstools/nut">NUT</a><a href="https://github.com/gethomepage/homepage">Homepage</a></div></div>
-    <div class="card"><h3>Messaging</h3><p>Push notifications and alerts from every service, and chat that stays on own hardware.</p><div class="tags"><a href="https://github.com/binwiederhier/ntfy">ntfy</a><span>Matrix</span><a href="https://gitlab.com/famedly/conduit">Conduit</a></div></div>
-    <div class="card"><h3>Home automation</h3><p>The house on one dashboard, with cameras recorded and analysed locally.</p><div class="tags"><a href="https://github.com/home-assistant/core">Home Assistant</a><a href="https://github.com/blakeblackshear/frigate">Frigate</a></div></div>
-    <div class="card"><h3>Daily drivers</h3><p>CachyOS on the desk for work and Linux gaming, macOS on the laptop, and Windows, though less and less these days.</p><div class="tags"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git">Linux</a><a href="https://cachyos.org">CachyOS</a><span>macOS</span><span>Windows</span><span>Linux gaming</span><span>NixOS</span><span>Debian</span></div></div>
+    <div class="card"><h3>Monitoring</h3><p>Health of the whole lab on one page, from the firewall and Wi-Fi to the UPS.</p><div class="tags"><a href="https://github.com/prometheus/prometheus">Prometheus</a><a href="https://github.com/prometheus/alertmanager">Alertmanager</a><a href="https://github.com/grafana/grafana">Grafana</a><a href="https://github.com/louislam/uptime-kuma">Uptime Kuma</a><a href="https://github.com/binwiederhier/ntfy">ntfy</a><a href="https://github.com/wazuh/wazuh">Wazuh</a><a href="https://github.com/crowdsecurity/crowdsec">CrowdSec</a><a href="https://github.com/portainer/portainer">Portainer</a><a href="https://github.com/traefik/traefik">Traefik</a><a href="https://github.com/goauthentik/authentik">Authentik</a><a href="https://github.com/AdguardTeam/AdGuardHome">AdGuard Home</a><span>UniFi Network</span><a href="https://github.com/networkupstools/nut">NUT</a><a href="https://github.com/gethomepage/homepage">Homepage</a></div></div>
+    <div class="card"><h3>Messaging</h3><p>Push notifications and alerts from the services, and self-hosted chat.</p><div class="tags"><a href="https://github.com/binwiederhier/ntfy">ntfy</a><span>Matrix</span><a href="https://gitlab.com/famedly/conduit">Conduit</a></div></div>
+    <div class="card"><h3>Home automation</h3><p>Home Assistant for the house, and Frigate for cameras with local detection.</p><div class="tags"><a href="https://github.com/home-assistant/core">Home Assistant</a><a href="https://github.com/blakeblackshear/frigate">Frigate</a></div></div>
+    <div class="card"><h3>Daily drivers</h3><p>Mostly Linux. CachyOS on the desktop for work and gaming, macOS on the laptop, and Windows less and less.</p><div class="tags"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git">Linux</a><a href="https://cachyos.org">CachyOS</a><span>macOS</span><span>Windows</span><span>Linux gaming</span><span>NixOS</span><span>Debian</span></div></div>
   </div>
 </div></section>
 
 <section id="music"><div class="wrap">
   <h2>music</h2>
   <p class="sub">Mostly SID</p>
-  <p class="note">The sound chip of the Commodore 64, and still one of the most characterful synthesizers ever put on a circuit board.</p>
+  <p class="note">The sound chip in the Commodore 64.</p>
   <div class="grid">
-    <div class="card"><h3>Legacy 8-bit hardware</h3><p>Playing SID tunes the way they were written, on the machines they were written for.</p><div class="tags"><span>Commodore 64</span><span>Commodore 128D</span></div></div>
-    <div class="card"><h3>SID</h3><p>The 8580 in the Commodores and the original 6581 in the sammichSID. Three voices, one analogue filter, endless character.</p><div class="tags"><span>MOS 8580</span><span>MOS 6581</span></div></div>
-    <div class="card"><h3>sammichSID</h3><p>A MIDIbox SID synthesizer built around real 6581 SID chips, played over MIDI.</p><div class="tags"><span>MIDIbox SID</span><span>MIDI</span></div></div>
+    <div class="card"><h3>Legacy 8-bit hardware</h3><p>Commodore 64 and Commodore 128D, for playing SID tunes on the real thing.</p><div class="tags"><span>Commodore 64</span><span>Commodore 128D</span></div></div>
+    <div class="card"><h3>SID</h3><p>8580 in the Commodores, 6581 in the sammichSID.</p><div class="tags"><span>MOS 8580</span><span>MOS 6581</span></div></div>
+    <div class="card"><h3>sammichSID</h3><p>MIDIbox SID synth with real 6581 chips, played over MIDI.</p><div class="tags"><span>MIDIbox SID</span><span>MIDI</span></div></div>
   </div>
 </div></section>
 
@@ -226,7 +226,7 @@
   <h2>projects</h2>
   <p class="sub">What I work on</p>
   <div class="grid">
-    <div class="card"><h3>Homelab infrastructure</h3><p>Compose stacks, GitOps manifests and runbooks. Lives in self-hosted Forgejo.</p><div class="tags"><span>Compose</span><a href="https://github.com/fluxcd/flux2">Flux</a><span>docs</span></div></div>
+    <div class="card"><h3>Homelab infrastructure</h3><p>Compose stacks, Flux manifests and runbooks. Kept in my own Forgejo.</p><div class="tags"><span>Compose</span><a href="https://github.com/fluxcd/flux2">Flux</a><span>docs</span></div></div>
     <div class="card"><h3>Miscellaneous</h3><p>TBA</p></div>
   </div>
 </div></section>
@@ -240,7 +240,7 @@
 (() => {
   const el = document.getElementById('typed');
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const lines = ['Full-stack and DevOps engineer · homelab builder', 'Python, TypeScript, Go and C#', 'ZFS, containers and GitOps', 'SSO in front of everything', 'C64 SID tunes on real hardware'];
+  const lines = ['Full-stack and DevOps engineer · homelab builder', 'Python, TypeScript, Go and C#', 'Talos, Flux and ZFS', 'C64 SID music'];
   let l = 0, i = 0, del = false;
   el.textContent = '';
   (function tick() {
