@@ -10,22 +10,23 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-<nav><div class="wrap">
+<nav aria-label="Main"><div class="wrap">
   <a class="brand" href="#top">~/mika</a>
-  <a class="hide" href="#lab">homelab</a>
-  <a class="hide" href="#stack">stack</a>
-  <a class="hide" href="#apps">apps</a>
-  <a class="hide" href="#music">music</a>
-  <a class="hide" href="#projects">projects</a>
+  <a href="#lab">homelab</a>
+  <a href="#stack">stack</a>
+  <a href="#apps">apps</a>
+  <a href="#music">music</a>
+  <a href="#projects">projects</a>
   <a href="https://github.com/mselin" rel="me">github</a>
   <a href="https://codeberg.org/bjaerni" rel="me">codeberg</a>
 </div></nav>
 
 <header id="top"><div class="wrap">
-  <div class="prompt"><b>❯</b> whoami</div>
+  <div class="prompt"><b aria-hidden="true">❯</b> whoami</div>
   <h1>Mika Selin</h1>
-  <div class="typed" id="typed" aria-label="Full-stack and DevOps engineer, homelab builder">Full-stack and DevOps engineer · homelab builder</div>
+  <p class="typed"><span class="sr-only">Full-stack and DevOps engineer, homelab builder</span><span id="typed" aria-hidden="true">Full-stack and DevOps engineer · homelab builder</span></p>
   <p class="lede">I do full-stack and DevOps work for a living and run a homelab on the side. This page describes how the lab is built and what runs in it.</p>
   <div class="cta">
     <a class="btn primary" href="#lab">Tour the lab</a>
@@ -33,14 +34,15 @@
     <a class="btn" href="https://codeberg.org/bjaerni" rel="me">Codeberg</a>
   </div>
   <div class="status">
-    <span><i class="dot"></i>platform up</span>
-    <span><i class="dot"></i>backups replicated</span>
-    <span><i class="dot"></i>Kubernetes cluster up</span>
+    <span><i class="dot" aria-hidden="true"></i>platform up</span>
+    <span><i class="dot" aria-hidden="true"></i>backups replicated</span>
+    <span><i class="dot" aria-hidden="true"></i>Kubernetes cluster up</span>
   </div>
 </div></header>
 
-<section id="lab"><div class="wrap">
-  <h2>homelab</h2>
+<main id="main" tabindex="-1">
+<section id="lab" aria-labelledby="h-lab"><div class="wrap">
+  <h2 id="h-lab">homelab</h2>
   <p class="sub">A lab for learning. Segmented network, apps only over VPN.</p>
   <p class="note">Storage, apps, identity and monitoring all run on one box. That is a single point of failure, and I'd build it differently with a bigger budget. There is also a Kubernetes cluster. Things change here all the time, so this page shows how the lab is built, not what state it is in today.</p>
   <div class="topo">
@@ -48,30 +50,30 @@
       <div class="node"><small>Outside</small><strong>Internet</strong><span>Nothing published, no inbound app traffic</span></div>
       <div class="node edge"><small>Remote access</small><strong>Mesh VPN</strong><span>Tailscale and self-hosted NetBird. Controlled access, through the firewall</span></div>
     </div>
-    <div class="link"><i></i></div>
+    <div class="link" aria-hidden="true"><i></i></div>
     <div class="row">
       <div class="node edge"><small>Edge</small><strong>Firewall / router</strong><span>OPNsense · Suricata · CrowdSec</span></div>
     </div>
-    <div class="link"><i></i></div>
+    <div class="link" aria-hidden="true"><i></i></div>
     <div class="row">
       <div class="node"><small>Network</small><strong>Segmented VLANs · UniFi Wi-Fi</strong><span>management · trusted · guest · IoT · DMZ · UniFi Network controller</span></div>
     </div>
-    <div class="link"><i></i></div>
+    <div class="link" aria-hidden="true"><i></i></div>
     <div class="row">
       <div class="node core"><small>Platform · single point of failure</small><strong>TrueNAS SCALE</strong><span>ZFS · storage · apps · identity · observability</span></div>
       <div class="node"><small>DNS</small><strong>AdGuard Home ×2</strong><span>Synced pair, Unbound upstream</span></div>
       <div class="node"><small>DMZ</small><strong>Proxmox VE</strong><span>Isolated workloads, no LAN access, limited egress</span></div>
       <div class="node"><small>Cluster</small><strong>Kubernetes</strong><span>Talos · Cilium · Flux</span></div>
     </div>
-    <div class="link"><i></i></div>
+    <div class="link" aria-hidden="true"><i></i></div>
     <div class="row">
       <div class="node"><small>Backup</small><strong>Offsite replication target</strong><span>Raw encrypted ZFS sends, 3-2-1</span></div>
     </div>
   </div>
 </div></section>
 
-<section><div class="wrap">
-  <h2>principles</h2>
+<section aria-labelledby="h-principles"><div class="wrap">
+  <h2 id="h-principles">principles</h2>
   <p class="sub">How it is run</p>
   <ul class="principles">
     <li><b>Built to learn.</b> I try things here, break them and rebuild them.</li>
@@ -87,8 +89,8 @@
   </ul>
 </div></section>
 
-<section id="stack"><div class="wrap">
-  <h2>stack</h2>
+<section id="stack" aria-labelledby="h-stack"><div class="wrap">
+  <h2 id="h-stack">stack</h2>
   <p class="sub">What runs there</p>
   <div class="grid">
     <div class="card"><h3>Ingress and identity</h3><p>Traefik in front of every app, with Authentik for single sign-on. nginx when it needs to be fast.</p><div class="tags"><a href="https://github.com/traefik/traefik">Traefik</a><a href="https://github.com/goauthentik/authentik">Authentik</a><span>OIDC</span><a href="https://github.com/nginx/nginx">nginx</a></div></div>
@@ -104,8 +106,8 @@
   </div>
 </div></section>
 
-<section id="apps"><div class="wrap">
-  <h2>apps</h2>
+<section id="apps" aria-labelledby="h-apps"><div class="wrap">
+  <h2 id="h-apps">apps</h2>
   <p class="sub">The app stack</p>
   <p class="note">Every app is behind SSO and defined as a Compose file in Git. The groups below match my Homepage dashboard.</p>
   <div class="grid">
@@ -119,8 +121,8 @@
   </div>
 </div></section>
 
-<section id="music"><div class="wrap">
-  <h2>music</h2>
+<section id="music" aria-labelledby="h-music"><div class="wrap">
+  <h2 id="h-music">music</h2>
   <p class="sub">Mostly SID</p>
   <p class="note">The sound chip in the Commodore 64.</p>
   <div class="grid">
@@ -130,14 +132,15 @@
   </div>
 </div></section>
 
-<section id="projects"><div class="wrap">
-  <h2>projects</h2>
+<section id="projects" aria-labelledby="h-projects"><div class="wrap">
+  <h2 id="h-projects">projects</h2>
   <p class="sub">What I work on</p>
   <div class="grid">
     <div class="card"><h3>Homelab infrastructure</h3><p>Compose stacks, Flux manifests and runbooks. Kept in my own Forgejo.</p><div class="tags"><span>Compose</span><a href="https://github.com/fluxcd/flux2">Flux</a><span>docs</span></div></div>
     <div class="card"><h3>Miscellaneous</h3><p>TBA</p></div>
   </div>
 </div></section>
+</main>
 
 <footer><div class="wrap">
   <span>© Mika Selin</span>
