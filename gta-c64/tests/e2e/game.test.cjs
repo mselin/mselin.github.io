@@ -119,6 +119,14 @@ test('driving into the canal floods the car and puts the player ashore', async (
   assert.ok(car.speed < 2, 'the car has stopped');
   await game.until(() => window.testCar.sink >= 1, 10000);
 
+  // The driver is in the canal (x 816 to 944) and can swim back to the quay.
+  const x0 = await game.read((s) => s.P.x);
+  assert.ok(x0 > 816 && x0 < 944, `swimming at x=${x0}`);
+  assert.equal(await game.read((s) => s.P.swim), true);
+  await game.page.keyboard.down('ArrowLeft');
+  await game.until((s) => s.P.x < 812 && !s.P.swim, 10000);
+  await game.page.keyboard.up('ArrowLeft');
+
   // The flooded car cannot be taken again.
   await game.read((s) => {
     s.P.x = window.testCar.x;

@@ -2,7 +2,7 @@
 // Car handling, collisions, traffic and police driving, damage and explosions.
 import { BLK, DIRS, GRASS, GRIP, KIND, LOT, NB, PAL, PI, PLAZA, ROAD, WALK, WPX } from './config.js';
 import { R, angDiff, clamp, hyp, mod, pick } from './util.js';
-import { decals, nearestLand, solidAt, tileAt, wallAt, waterAt } from './world.js';
+import { decals, tileAt, wallAt, waterAt } from './world.js';
 import { sfx } from './audio.js';
 import { G, P, msg, onScreen, pop, ppos } from './state.js';
 import { mkPed } from './entities.js';
@@ -99,7 +99,7 @@ export function sinkStep(c, dt) {
 }
 /**
  * A car that is wholly in the water floods: the engine dies for good, it stops and starts to sink.
- * It does not catch fire or blow up from this. A driver gets out and swims to the nearest dry land.
+ * It does not catch fire or blow up from this. A driver is left swimming where it went down.
  */
 export function flood(c) {
   if (c.flooded || c.dead) return;
@@ -125,13 +125,12 @@ export function flood(c) {
     }
   }
   if (P.car === c) {
-    const land = nearestLand(c.x, c.y);
+    // The driver is left in the water where the car went down, and has to swim for the bank.
     P.car = null;
-    if (land) {
-      P.x = land.x;
-      P.y = land.y;
-    }
-    msg('YOU SWIM ASHORE. THE CAR DOES NOT. THE WARRANTY DOES NOT COVER THIS.');
+    P.x = c.x;
+    P.y = c.y;
+    P.swim = true;
+    msg('THE CAR IS GONE. SWIM FOR IT. THE WARRANTY DOES NOT COVER THIS.');
   }
   if (G.job && G.job.car === c) failJob('THE LIMO IS NOW A SUBMARINE');
 }
@@ -344,7 +343,7 @@ export function sidePos(c) {
   for (const s of [1, -1]) {
     const x = c.x - Math.sin(c.a) * 12 * s,
       y = c.y + Math.cos(c.a) * 12 * s;
-    if (!solidAt(x, y)) return { x, y };
+    if (!wallAt(x, y)) return { x, y };
   }
   return null;
 }

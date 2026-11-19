@@ -2,7 +2,7 @@
 // Pedestrians and police on foot.
 import { DIRS, GRASS, LOT, PAL, PLAZA, ROAD, WALK } from './config.js';
 import { R, hyp } from './util.js';
-import { decals, solidAt, tileAt } from './world.js';
+import { decals, nearestLand, solidAt, tileAt, wallAt, waterAt } from './world.js';
 import { sfx } from './audio.js';
 import { G, P, msg, onScreen, pop, ppos } from './state.js';
 import { crime } from './heat.js';
@@ -42,15 +42,21 @@ export function scare(x, y, r, t) {
       q.fy = y;
     }
 }
+export const SWIM_FACTOR = 0.4;
 function pedMove(p, vx, vy, dt) {
+  // Water is not a wall for people, but it is slow going.
+  if (waterAt(p.x, p.y)) {
+    vx *= SWIM_FACTOR;
+    vy *= SWIM_FACTOR;
+  }
   const nx = p.x + vx * dt,
     ny = p.y + vy * dt;
   let ok = false;
-  if (!solidAt(nx, p.y)) {
+  if (!wallAt(nx, p.y)) {
     p.x = nx;
     ok = true;
   }
-  if (!solidAt(p.x, ny)) {
+  if (!wallAt(p.x, ny)) {
     p.y = ny;
     ok = true;
   }
@@ -139,6 +145,25 @@ export function updPeds(dt) {
       }
       continue;
     }
+    if (waterAt(p.x, p.y)) {
+      // Nobody is in the water on purpose: head for the nearest bank, slowly.
+      p.landT = (p.landT || 0) - dt;
+      if (!p.land || p.landT <= 0) {
+        p.land = nearestLand(p.x, p.y);
+        p.landT = 1;
+      }
+      if (p.land) {
+        const dx = p.land.x - p.x,
+          dy = p.land.y - p.y,
+          d = hyp(dx, dy) || 1;
+        p.dx = dx / d;
+        p.dy = dy / d;
+        pedMove(p, p.dx * 45, p.dy * 45, dt);
+      }
+      p.t = 0;
+      continue;
+    }
+    p.land = null;
     p.t -= dt;
     if (p.t <= 0 || !pedPref(tileAt(p.x + p.dx * 9, p.y + p.dy * 9), p)) pedPick(p);
     if (!solidAt(p.x + p.dx * 4, p.y + p.dy * 4)) {

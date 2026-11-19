@@ -120,14 +120,15 @@ test('a flooded car no longer responds to the controls', () => {
   assert.ok(Math.hypot(c.x - x, c.y - y) < 0.5, 'does not move');
 });
 
-test('the driver of a flooding car is put ashore on dry land', () => {
+test('the driver of a flooding car is left swimming where it went down', () => {
   const c = atCanal();
   P.car = c;
   drive(c, 3, 1);
   assert.equal(P.car, null, 'no longer in the car');
-  assert.ok(!solidAt(P.x, P.y), 'standing somewhere walkable');
-  assert.ok(Math.hypot(P.x - c.x, P.y - c.y) < 150, 'close to where the car went in');
-  assert.match(G.msgTxt, /SWIM ASHORE/);
+  assert.ok(waterAt(P.x, P.y), 'in the water');
+  assert.ok(Math.hypot(P.x - c.x, P.y - c.y) < 40, 'where the car went in');
+  assert.equal(P.swim, true);
+  assert.match(G.msgTxt, /SWIM FOR IT/);
 });
 
 test('nearestLand finds the bank from the middle of the canal', () => {

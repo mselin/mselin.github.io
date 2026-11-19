@@ -41,6 +41,7 @@ const freshPlayer = () => ({
   hair: 0,
   skin: 10,
   type: 'civ',
+  swim: false, // in the water
 });
 // Everything about the running game that more than one module changes.
 export const G = {
