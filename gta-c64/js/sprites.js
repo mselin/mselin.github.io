@@ -96,8 +96,13 @@ function carSrc(k, col) {
 }
 const sprC = {};
 export function carSpr(c) {
-  const key = c.kind.n + (c.dead ? 'w' : c.col);
-  return sprC[key] || (sprC[key] = mkSprite(carSrc(c.kind, c.dead ? -2 : c.col), c.kind.L, c.kind.W, 32, 34));
+  const key = c.kind.n + (c.dead ? 'w' : c.col) + (c.flooded ? 'f' : '');
+  if (sprC[key]) return sprC[key];
+  const src = carSrc(c.kind, c.dead ? -2 : c.col);
+  // Underwater: every other pixel is left out, so the water shows through.
+  if (c.flooded)
+    for (let i = 0; i < src.length; i++) if (((i % c.kind.L) + Math.floor(i / c.kind.L)) & 1) src[i] = -1;
+  return (sprC[key] = mkSprite(src, c.kind.L, c.kind.W, 32, 34));
 }
 function pedSrc(shirt, hair, skin, scoot, f) {
   const a = new Int8Array(64).fill(-1),

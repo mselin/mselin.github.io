@@ -86,6 +86,10 @@ export const sfx = {
   crash(v) {
     noise(0.22, clamp(v, 0.2, 0.7), 1400);
   },
+  splash() {
+    noise(0.5, 0.5, 900);
+    noise(0.2, 0.3, 3500);
+  },
   boom() {
     noise(0.9, 0.9, 500);
     tone(120, 30, 0.6, 'triangle', 0.5);
