@@ -10,6 +10,7 @@ const TYPES = {
   js: 'text/javascript; charset=utf-8',
   json: 'application/json',
   wasm: 'application/wasm',
+  png: 'image/png',
   md: 'text/plain; charset=utf-8',
 };
 

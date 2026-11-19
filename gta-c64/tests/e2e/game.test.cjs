@@ -222,3 +222,23 @@ test('delivering the limo leaves the player standing somewhere they can walk fro
   await game.page.keyboard.down('ArrowLeft');
   await game.until(`(s) => s.P.x < ${x0} - 10`);
 });
+
+test('both end screens show their picture from the assets folder', async () => {
+  await game.start();
+  await game.until((s) => s.endingsLoaded());
+  // Count the colours in the picture area of the screen: a missing picture would leave it black.
+  const colours = () =>
+    game.page.evaluate(() => {
+      const c = document.getElementById('c'),
+        d = c.getContext('2d').getImageData(32, 36 + 18, 320, 150).data,
+        seen = new Set();
+      for (let i = 0; i < d.length; i += 4) seen.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+      return seen.size;
+    });
+  await game.read((s) => (s.G.screen = 'over'));
+  await game.wait(200);
+  assert.ok((await colours()) >= 6, 'the jail picture is on screen');
+  await game.read((s) => (s.G.screen = 'win'));
+  await game.wait(200);
+  assert.ok((await colours()) >= 6, 'the office picture is on screen');
+});

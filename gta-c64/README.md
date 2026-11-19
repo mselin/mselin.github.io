@@ -44,7 +44,8 @@ npm test
 | `js/cars.js`, `js/peds.js`, `js/player.js` | Car handling and AI, pedestrians and police on foot, the player. |
 | `js/heat.js`, `js/missions.js`, `js/spawner.js`, `js/items.js` | Wanted level, jobs, populating the streets, bullets and pickups. |
 | `js/game.js`, `js/render.js`, `js/input.js` | Per-frame update, drawing, keyboard and touch. |
-| `js/endings.js` | The game-over and victory pictures. |
+| `js/endings.js` | The game-over and victory screens. |
+| `assets/` | Picture files: the two end screens. |
 | `js/screen.js`, `js/font.js`, `js/sprites.js`, `js/audio.js` | Canvas, bitmap font, sprites, sound effects and the built-in tune. |
 | `js/playlist.js`, `js/radio.js`, `js/info.js` | Playlist parsing, the radio, the information page. |
 | `sidplayer.js` | Bridge between the radio and the SID player. |

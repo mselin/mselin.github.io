@@ -11,6 +11,7 @@ import { passJob, startJob } from './missions.js';
 import { down } from './player.js';
 import { initWorld, onMapReset, update } from './game.js';
 import { draw } from './render.js';
+import { endingsLoaded } from './endings.js';
 import { initRadio, radio, radioState, silence } from './radio.js';
 import { initInfo } from './info.js';
 import { initInput } from './input.js';
@@ -40,4 +41,18 @@ requestAnimationFrame(frame);
 cv.focus();
 
 // A handle on the running game, for the browser tests and for poking at it from the console.
-window.sleazeburg = { G, P, K, KIND, mkCar, crime, down, startJob, passJob, radio, radioState, silence };
+window.sleazeburg = {
+  G,
+  P,
+  K,
+  KIND,
+  mkCar,
+  crime,
+  down,
+  startJob,
+  passJob,
+  radio,
+  radioState,
+  silence,
+  endingsLoaded,
+};
