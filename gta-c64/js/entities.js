@@ -48,9 +48,17 @@ export function mkPed(x, y, type) {
     dx: d[0],
     dy: d[1],
     type,
-    spd: type === 'scoot' ? 52 : type === 'cop' ? 47 : 15 + R() * 8,
-    shirt: type === 'cop' ? 6 : type === 'scoot' ? 13 : pick([4, 6, 8, 3, 7, 14, 10, 9, 5, 1]),
-    hair: type === 'cop' ? 1 : pick([0, 9, 8, 7, 0]),
+    spd: type === 'scoot' ? 52 : type === 'cop' ? 47 : type === 'cult' ? 0 : 15 + R() * 8,
+    // Cultists wear purple robes with the hood up.
+    shirt:
+      type === 'cop'
+        ? 6
+        : type === 'scoot'
+          ? 13
+          : type === 'cult'
+            ? 4
+            : pick([4, 6, 8, 3, 7, 14, 10, 9, 5, 1]),
+    hair: type === 'cop' ? 1 : type === 'cult' ? 14 : pick([0, 9, 8, 7, 0]),
     skin: pick([10, 10, 8]),
     t: R() * 3,
     flee: 0,
