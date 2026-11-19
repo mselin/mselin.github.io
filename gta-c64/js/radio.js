@@ -48,10 +48,15 @@ function sidLoadLib() {
     }))
   );
 }
+// A tune that has not arrived in this long is skipped, so a stalled download cannot leave the radio tuning for ever.
+const FETCH_TIMEOUT_MS = 15000;
+// After this many tunes in a row fail to start, the browser evidently cannot play them at all.
+const MAX_PLAY_FAILURES = 3;
+let playFails = 0;
 function trackBytes(t) {
   return t.bytes
     ? Promise.resolve(t.bytes)
-    : fetch(t.url)
+    : fetch(t.url, { signal: AbortSignal.timeout ? AbortSignal.timeout(FETCH_TIMEOUT_MS) : undefined })
         .then((r) => {
           if (!r.ok) throw 0;
           return r.arrayBuffer();
@@ -131,12 +136,23 @@ function sidStart() {
   const seq = loadSeq;
   G.sidPlayer
     .play()
+    .then(() => {
+      playFails = 0;
+    })
     .catch(() => {
-      if (seq === loadSeq) {
-        sidPlaying = false;
-        msg(radio[G.station].name + ': THAT TUNE WOULD NOT PLAY.');
-        radioNext(true);
+      if (seq !== loadSeq) return;
+      sidPlaying = false;
+      if (++playFails >= MAX_PLAY_FAILURES) {
+        // Give up on SID stations rather than work through the whole playlist failing each one.
+        playFails = 0;
+        G.station = 0;
+        silence();
+        msg('RADIO: THIS BROWSER CANNOT PLAY SID TUNES. BACK TO THE HOUSE BAND.');
+        radioListener();
+        return;
       }
+      msg(radio[G.station].name + ': THAT TUNE WOULD NOT PLAY.');
+      radioNext(true);
     })
     .then(() => {
       if (seq === loadSeq) sidBusy = false;

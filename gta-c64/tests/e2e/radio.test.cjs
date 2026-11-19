@@ -134,3 +134,59 @@ test('the information page credits the music and links each tune to HVSC', async
   await game.press('Escape');
   await game.until((s) => !s.G.infoOpen);
 });
+
+test('when no tune can be fetched, a station goes quiet after trying each one once', async () => {
+  await game.page.unroute('https://www.hvsc.c64.org/**');
+  let asked = 0;
+  await game.page.route('https://www.hvsc.c64.org/**', (route) => {
+    asked++;
+    route.fulfill({ status: 404, body: 'gone', headers: { 'access-control-allow-origin': '*' } });
+  });
+  game.errors = { push() {} }; // the browser logs each 404; that is the point of this test
+  await game.press('KeyM');
+  await game
+    .until((s) => /DEAD AIR/.test(s.G.msgTxt) || (s.G.screen === 'title' && false), 15000)
+    .catch(() => {});
+  await game.page.waitForFunction(() => true);
+  await game.wait(3000);
+  const settled = asked;
+  assert.equal(
+    settled,
+    stations.stations[0].tracks.length,
+    'each tune of the station was tried exactly once',
+  );
+  await game.wait(1500);
+  assert.equal(asked, settled, 'and then it stopped asking');
+  assert.equal((await radio()).playing, false);
+  game.errors = [];
+});
+
+test('a browser that cannot start any tune falls back to the built-in station instead of looping', async () => {
+  await game.press('KeyM');
+  await game.until((s) => s.radioState().playing && !s.radioState().busy, 15000);
+  // Swap in a player whose tunes load but never start, as on a browser without the audio features needed.
+  await game.read((s) => {
+    window.playAttempts = 0;
+    s.G.sidPlayer = {
+      load: async () => ({ title: '', author: '', released: '', song: 1, songs: 1 }),
+      play: async () => {
+        window.playAttempts++;
+        throw new Error('no audio');
+      },
+      pause: async () => {},
+      halt: async () => {},
+      setSong: async () => {},
+      setVolume() {},
+      unlock() {},
+      timeMs: () => 0,
+      level: () => 0,
+    };
+  });
+  await game.press('KeyN');
+  await game.until((s) => s.radioState().station === 'SID FM', 15000);
+  const attempts = await game.page.evaluate(() => window.playAttempts);
+  assert.equal(attempts, 3);
+  assert.match(await game.read((s) => s.G.msgTxt), /CANNOT PLAY SID TUNES/);
+  await game.wait(1000);
+  assert.equal(await game.page.evaluate(() => window.playAttempts), 3, 'no further attempts');
+});
