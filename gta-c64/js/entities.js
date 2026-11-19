@@ -29,8 +29,15 @@ export function mkCar(kind, x, y, a, col) {
     bust: 0,
     smk: 0,
     ghost: 0,
+    flooded: false,
+    sink: 0, // 0 afloat to 1 on the bottom, once flooded
   };
 }
+/**
+ * How far under a flooded car is, as drawn: 0 not in the water, 1 awash to the sills,
+ * 2 water over the bodywork, 3 on the bottom.
+ */
+export const sinkStage = (c) => (!c.flooded ? 0 : c.sink < 0.3 ? 1 : c.sink < 0.75 ? 2 : 3);
 export function mkPed(x, y, type) {
   const d = pick(DIRS);
   return {

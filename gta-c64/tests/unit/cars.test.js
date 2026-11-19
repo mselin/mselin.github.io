@@ -3,8 +3,8 @@ import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND } from '../../js/config.js';
 import { genMap, nearestLand, solidAt, wallAt, waterAt } from '../../js/world.js';
-import { mkCar } from '../../js/entities.js';
-import { carHits, carPhys } from '../../js/cars.js';
+import { mkCar, sinkStage } from '../../js/entities.js';
+import { carHits, carPhys, sinkStep, wetness } from '../../js/cars.js';
 import { G, P } from '../../js/state.js';
 
 const DT = 1 / 60;
@@ -134,4 +134,54 @@ test('nearestLand finds the bank from the middle of the canal', () => {
   const land = nearestLand(880, 112);
   assert.ok(land && !solidAt(land.x, land.y));
   assert.deepEqual(nearestLand(8, 60), { x: 8, y: 60 }, 'already on land');
+});
+
+test('wetness counts how much of the car is over water', () => {
+  const c = atCanal();
+  assert.equal(wetness(c), 0);
+  c.x = 812; // nose over the edge
+  assert.equal(wetness(c), 1 / 3);
+  c.x = 818; // nose and middle
+  assert.equal(wetness(c), 2 / 3);
+  c.x = 830;
+  assert.equal(wetness(c), 1);
+});
+
+test('a car with only its nose in the water is slowed, not flooded, and can back out', () => {
+  const c = atCanal();
+  c.x = 812;
+  drive(c, 1.5, -1);
+  assert.equal(c.flooded, false);
+  assert.ok(c.x < 800, `reversed onto the quay, x=${c.x}`);
+  assert.equal(wetness(c), 0);
+});
+
+test('water slows a car down before it floods', () => {
+  const c = atCanal(KIND.sports);
+  c.x = 700;
+  let dry = 0,
+    deepest = Infinity;
+  for (let i = 0; i < 600 && !c.flooded; i++) {
+    if (wetness(c) === 0) dry = speed(c);
+    carPhys(c, 1, 0, DT);
+    if (wetness(c) >= 2 / 3) deepest = Math.min(deepest, speed(c));
+  }
+  assert.ok(dry > 60, `arrived at speed ${dry}`);
+  assert.ok(deepest < dry * 0.8, `slowed from ${dry} to ${deepest} while wading in`);
+  assert.equal(c.flooded, true);
+});
+
+test('a flooded car sinks in stages and then stays down', () => {
+  const c = atCanal();
+  assert.equal(sinkStage(c), 0);
+  drive(c, 3, 1);
+  assert.equal(c.flooded, true);
+  const seen = new Set();
+  for (let i = 0; i < 6 * 60; i++) {
+    sinkStep(c, DT);
+    seen.add(sinkStage(c));
+  }
+  assert.deepEqual([...seen], [1, 2, 3], 'awash, then under, then on the bottom');
+  assert.equal(c.sink, 1);
+  assert.equal(c.dead, false);
 });

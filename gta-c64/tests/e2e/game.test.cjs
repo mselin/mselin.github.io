@@ -117,6 +117,7 @@ test('driving into the canal floods the car and puts the player ashore', async (
   }));
   assert.deepEqual([car.dead, !!car.burn], [false, false], 'the car does not explode');
   assert.ok(car.speed < 2, 'the car has stopped');
+  await game.until(() => window.testCar.sink >= 1, 10000);
 
   // The flooded car cannot be taken again.
   await game.read((s) => {

@@ -73,13 +73,38 @@ function skid(c, on) {
   }
   c.sk = on ? p : null;
 }
+/** How much of a car is over water: 0, 1/3, 2/3 or 1, sampled at its nose, middle and tail. */
+export function wetness(c) {
+  const h = c.kind.L / 2 - 3,
+    cs = Math.cos(c.a),
+    sn = Math.sin(c.a);
+  let n = 0;
+  for (let t = -1; t <= 1; t++) if (waterAt(c.x + cs * h * t, c.y + sn * h * t)) n++;
+  return n / 3;
+}
+/** A flooded car goes down over a few seconds, trailing bubbles. */
+export function sinkStep(c, dt) {
+  if (!c.flooded || c.sink >= 1) return;
+  c.sink = Math.min(1, c.sink + dt / 4);
+  if (R() < dt * 9 && onScreen(c.x, c.y, 10))
+    G.parts.push({
+      x: c.x + (R() - 0.5) * 14,
+      y: c.y + (R() - 0.5) * 10,
+      vx: 0,
+      vy: -9,
+      l: 0.5,
+      col: R() < 0.5 ? 14 : 1,
+      s: 1,
+    });
+}
 /**
- * A car whose middle is over water floods: the engine dies for good and it settles where it is.
+ * A car that is wholly in the water floods: the engine dies for good, it stops and starts to sink.
  * It does not catch fire or blow up from this. A driver gets out and swims to the nearest dry land.
  */
 export function flood(c) {
   if (c.flooded || c.dead) return;
   c.flooded = true;
+  c.sink = 0;
   c.ai = null;
   c.driver = false;
   c.parked = false;
@@ -113,7 +138,7 @@ export function flood(c) {
 export function carPhys(c, thr, steer, dt, hb) {
   if (c.flooded) {
     // Dead in the water: no engine, no steering, just the last of its momentum.
-    const drag = Math.max(0, 1 - 5 * dt);
+    const drag = Math.max(0, 1 - 4 * dt);
     c.vx *= drag;
     c.vy *= drag;
     if (!carHits(c, c.x + c.vx * dt, c.y + c.vy * dt)) {
@@ -138,14 +163,17 @@ export function carPhys(c, thr, steer, dt, hb) {
     lat = -c.vx * fy + c.vy * fx;
   const braking = thr < 0 && fwd > 5,
     spin = thr > 0 && fwd < 45 && fwd > -5 && k.acc > 150;
-  if (thr > 0) fwd += k.acc * thr * dt;
+  // Wading: the more of the car is in the water, the more it drags, and the less the tyres can do.
+  const wet = wetness(c);
+  if (thr > 0) fwd += k.acc * thr * (1 - 0.6 * wet) * dt;
   else if (thr < 0) fwd -= (fwd > 5 ? k.acc * 2.2 : k.acc * 0.6) * -thr * dt;
   if (hb) fwd -= Math.sign(fwd) * Math.min(Math.abs(fwd), k.acc * 1.2 * dt);
   fwd -= fwd * 0.5 * dt;
   if (!thr) fwd -= Math.sign(fwd) * Math.min(Math.abs(fwd), 45 * dt);
-  const mx = k.max * (c.hp < 40 ? 0.7 : 1);
+  fwd -= fwd * 4 * wet * dt;
+  const mx = k.max * (c.hp < 40 ? 0.7 : 1) * (1 - 0.7 * wet);
   fwd = clamp(fwd, -mx * 0.4, mx);
-  let grip = GRIP[k.n] * (hb ? 0.28 : braking ? 0.6 : 1) * (c.hp < 40 ? 0.85 : 1);
+  let grip = GRIP[k.n] * (hb ? 0.28 : braking ? 0.6 : 1) * (c.hp < 40 ? 0.85 : 1) * (1 - 0.5 * wet);
   if (tileAt(c.x, c.y) === GRASS) grip *= 0.55;
   lat -= Math.sign(lat) * Math.min(Math.abs(lat), grip * dt);
   lat *= Math.max(0, 1 - 1.2 * dt);
@@ -165,7 +193,17 @@ export function carPhys(c, thr, steer, dt, hb) {
   } else c.y = ny;
   c.x = clamp(c.x, 8, WPX - 8);
   c.y = clamp(c.y, 8, WPX - 8);
-  if (waterAt(c.x, c.y)) flood(c);
+  if (wet > 0 && Math.abs(fwd) > 20 && R() < dt * 30 && onScreen(c.x, c.y, 10))
+    G.parts.push({
+      x: c.x + (R() - 0.5) * 10,
+      y: c.y + (R() - 0.5) * 10,
+      vx: -c.vx * 0.2,
+      vy: -c.vy * 0.2,
+      l: 0.3,
+      col: R() < 0.5 ? 1 : 14,
+      s: 2,
+    });
+  if (wetness(c) >= 1) flood(c);
 }
 function trafficAI(c, dt) {
   const D = DIRS[c.dir];
@@ -350,6 +388,7 @@ function explode(c) {
 }
 export function updCars(dt) {
   for (const c of G.cars) {
+    sinkStep(c, dt);
     if (c.dead) {
       if (hyp(c.vx, c.vy) > 2) carPhys(c, 0, 0, dt);
       if (R() < dt * 4)
@@ -401,6 +440,8 @@ export function updCars(dt) {
     for (let j = i + 1; j < G.cars.length; j++) {
       const b = G.cars[j];
       if (Math.abs(a.x - b.x) > 30 || Math.abs(a.y - b.y) > 30) continue;
+      // A car on the bottom is out of the way of the ones still on the surface.
+      if ((a.flooded && a.sink >= 1) || (b.flooded && b.sink >= 1)) continue;
       const at = a.ai === 'traffic',
         bt = b.ai === 'traffic';
       if (at && bt) continue;
