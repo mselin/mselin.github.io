@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    name: Site checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Validate HTML
+        run: git ls-files -z '*.html' | xargs -0 npx --yes html-validate@11.21.1
+      - name: Check links, data files and private details
+        env:
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
+        run: python3 .github/scripts/check_repo.py
+
+  game:
+    name: Sleazeburg 64 tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: gta-c64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gta-c64/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:e2e
+
+  # The one check that branch protection requires, so jobs can be added or renamed
+  # above without touching the repository settings.
+  ok:
+    name: All checks passed
+    if: always()
+    needs: [site, game]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fail unless every job succeeded
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
