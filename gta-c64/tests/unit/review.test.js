@@ -81,3 +81,25 @@ test('bullets hit a car that is still sinking, but pass over one on the bottom',
   assert.deepEqual(shoot(0.2), { hp: KIND.sedan.hp - 20, bullets: 0 });
   assert.deepEqual(shoot(1), { hp: KIND.sedan.hp, bullets: 1 });
 });
+
+test("crashed traffic is cleared once it has sat out of sight, but the player's own car stays", async () => {
+  const { spawner } = await import('../../js/spawner.js');
+  P.x = 300;
+  P.y = 300;
+  G.camX = 140;
+  G.camY = 212;
+  const far = (extra) => Object.assign(mkCar(KIND.sedan, 300, 600, 0), extra);
+  const crashed = far({ driver: true });
+  const mine = far({ used: true });
+  const parked = far({ parked: true });
+  const inView = Object.assign(mkCar(KIND.sedan, 320, 300, 0), { driver: true });
+  G.cars = [crashed, mine, parked, inView];
+  for (let i = 0; i < 8 * 60; i++) spawner(DT);
+  assert.equal(G.cars.includes(crashed), false, 'the stalled car out of sight is gone');
+  for (const [c, name] of [
+    [mine, 'the car the player drove'],
+    [parked, 'a parked car'],
+    [inView, 'a stalled car in view'],
+  ])
+    assert.ok(G.cars.includes(c), `${name} is kept`);
+});
