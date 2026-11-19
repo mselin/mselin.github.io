@@ -15,6 +15,8 @@ import {
   setMusic,
 } from './radio.js';
 
+import { onPresenceChange, presenceStatus, setPresence } from './presence.js';
+
 const $ = (id) => document.getElementById(id),
   el = (tag, txt) => {
     const e = document.createElement(tag);
@@ -87,12 +89,43 @@ function infoRender() {
     pl.appendChild(ul);
   }
 }
+const BRIDGE_HELP =
+  'https://github.com/mselin/mselin.github.io/tree/main/gta-c64/tools/presence-bridge#readme';
+// What the player is told for each state the Discord setting can be in.
+const PRESENCE_TEXT = {
+  off: 'Off. Nothing is sent anywhere.',
+  starting: 'On: looking for the helper program ...',
+  connected: 'On, and connected. Your Discord profile shows what you are doing in the game.',
+  'no-discord':
+    'On. The helper program is running, but it cannot reach Discord. Is the Discord desktop app open on this computer?',
+  'no-app-id': 'On, but the helper program has no Discord application ID set, so nothing is shown.',
+  'no-bridge':
+    "On, but the helper program was not found. It is optional, and you install and run it yourself. If it is running, your browser may be stopping this page from reaching it: allow this site to access devices on your local network in the browser's site settings.",
+  refused:
+    'On, but the helper program turned this game away. It may be a different version from the one this game expects.',
+  unavailable: 'On, but the game could not load its own presence settings. Reloading the page may help.',
+};
+function presenceRender() {
+  if (!G.infoOpen) return;
+  const { enabled, status } = presenceStatus();
+  $('bdrp').textContent = 'DISCORD RICH PRESENCE: ' + (enabled ? 'ON' : 'OFF');
+  const line = $('drpstat');
+  line.textContent = PRESENCE_TEXT[status] || '';
+  if (status === 'no-bridge' || status === 'refused' || status === 'no-app-id') {
+    const a = el('a', 'How to set it up');
+    a.href = BRIDGE_HELP;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    line.append(' ', a, '.');
+  }
+}
 export function infoToggle() {
   G.infoOpen = !G.infoOpen;
   $('info').classList.toggle('on', G.infoOpen);
   for (const k in K) K[k] = false;
   if (G.infoOpen) {
     infoRender();
+    presenceRender();
     $('iclose').focus();
   } else cv.focus();
 }
@@ -115,5 +148,9 @@ export function initInfo() {
   $('bst').addEventListener('click', radioStation);
   $('bnx').addEventListener('click', () => radioNext());
   $('bld').addEventListener('click', pickSidFile);
+  // Turning this on is the first time the page reaches for the player's own computer, so it only ever
+  // happens from this click.
+  $('bdrp').addEventListener('click', () => setPresence(!presenceStatus().enabled));
+  onPresenceChange(presenceRender);
   onRadioChange(infoRender);
 }

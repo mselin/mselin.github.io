@@ -23,6 +23,8 @@ export function hurt(n, why) {
     down('dead', why);
   }
 }
+/** How the player last went down: 'dead' or 'busted'. */
+export const lastDown = () => downKind;
 export function down(kind, why) {
   G.screen = 'down';
   downKind = kind;

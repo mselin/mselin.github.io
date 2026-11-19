@@ -50,7 +50,15 @@ async function openGame(options = {}) {
     route.fulfill({ body: testTune(), headers: { 'access-control-allow-origin': '*' } });
   });
   await page.goto(server.url);
-  await page.waitForFunction(() => window.sleazeburg);
+  try {
+    await page.waitForFunction(() => window.sleazeburg, null, { timeout: 15000 });
+  } catch (e) {
+    // The game did not start. Close everything, or the open browser keeps the test process alive for ever,
+    // and say why.
+    await browser.close();
+    await server.close();
+    throw new Error('the game did not start: ' + (game.errors.join('; ') || e.message));
+  }
 
   /** Run a function in the page with the game handle as its argument. */
   game.read = (fn, arg) => page.evaluate(`(${fn})(window.sleazeburg, ${JSON.stringify(arg ?? null)})`);

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // The wanted level: crimes raise it, losing the police lowers it. Also the paint shop, district names and news ticker.
-import { BLK, CCOLS, HEATMSG, HT, NEWS } from './config.js';
+import { CCOLS, DISTRICTS, HEATMSG, HT, NEWS } from './config.js';
 import { R, hyp, pick } from './util.js';
-import { PAINT } from './world.js';
+import { PAINT, districtAt } from './world.js';
 import { sfx, tone } from './audio.js';
 import { G, P, msg, ppos } from './state.js';
 import { down } from './player.js';
@@ -92,18 +92,7 @@ export function updHeat(dt) {
       msg('PAINT & PRAY: NEW COLOUR, SAME SINS. -$200');
     } else msg('PAINT & PRAY: NO CASH, NO ABSOLUTION.');
   }
-  const bx = Math.floor(p.x / BLK),
-    by = Math.floor(p.y / BLK),
-    dn =
-      bx === 4
-        ? 'THE MOAT'
-        : bx < 4
-          ? by < 4
-            ? 'GENTRIFIA'
-            : 'DEBT VALLEY'
-          : by < 4
-            ? 'HOA HEIGHTS'
-            : 'CRYPTO DOCKS';
+  const dn = DISTRICTS[districtAt(p.x, p.y)];
   if (dn !== district) {
     district = dn;
     G.pops.push({ x: 0, y: 0, t: dn, col: 1, l: 2.5, hud: true });
