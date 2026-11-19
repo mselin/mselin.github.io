@@ -1,0 +1,65 @@
+{
+  "hvscBase": "https://www.hvsc.c64.org/download/C64Music",
+  "stations": [
+    {
+      "name": "HUBBARD FM",
+      "tagline": "ROB HUBBARD AROUND THE CLOCK",
+      "tracks": [
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Sanxion.sid", "id": 104543, "title": "Sanxion", "author": "Rob Hubbard", "released": "1986 Thalamus", "subtune": 1, "seconds": 334},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Samantha_Fox_Strip_Poker.sid", "id": 61163, "title": "Samantha Fox Strip Poker", "author": "Rob Hubbard (John York)", "released": "1986 Martech", "subtune": 10, "seconds": 92},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Zoids.sid", "id": 50112, "title": "Zoids", "author": "Rob Hubbard", "released": "1986 Martech", "subtune": 1, "seconds": 304},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/International_Karate.sid", "id": 104531, "title": "International Karate", "author": "Rob Hubbard", "released": "1986 System 3", "subtune": 1, "seconds": 645},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Monty_on_the_Run.sid", "id": 138098, "title": "Monty on the Run", "author": "Rob Hubbard", "released": "1985 Gremlin Graphics", "subtune": 1, "seconds": 350},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Commando.sid", "id": 149387, "title": "Commando", "author": "Rob Hubbard", "released": "1985 Elite", "subtune": 1, "seconds": 236},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Crazy_Comets.sid", "id": 96903, "title": "Crazy Comets", "author": "Rob Hubbard", "released": "1985 Martech", "subtune": 1, "seconds": 276},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Thing_on_a_Spring.sid", "id": 127758, "title": "Thing on a Spring", "author": "Rob Hubbard", "released": "1985 Gremlin Graphics", "subtune": 1, "seconds": 218},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Rasputin.sid", "id": 131443, "title": "Rasputin", "author": "Rob Hubbard", "released": "1985 Firebird", "subtune": 1, "seconds": 307},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/ACE_II.sid", "id": 113530, "title": "ACE II", "author": "Rob Hubbard", "released": "1987 Cascade Games", "subtune": 1, "seconds": 313},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Nemesis_the_Warlock.sid", "id": 130260, "title": "Nemesis the Warlock", "author": "Rob Hubbard", "released": "1987 Martech", "subtune": 1, "seconds": 412},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Skate_or_Die_intro.sid", "id": 139169, "title": "Skate or Die (intro)", "author": "Rob Hubbard", "released": "1987 Electronic Arts", "subtune": 1, "seconds": 243}
+      ]
+    },
+    {
+      "name": "MANIACS FM",
+      "tagline": "JEROEN TEL AND FRIENDS. MAXIMUM ARPEGGIO",
+      "tracks": [
+        {"hvsc": "/MUSICIANS/T/Tel_Jeroen/Afterburner.sid", "id": 118494, "title": "Afterburner", "author": "Jeroen Tel", "released": "1989 Sega", "subtune": 1, "seconds": 333},
+        {"hvsc": "/MUSICIANS/T/Tel_Jeroen/2400_AD.sid", "id": 137149, "title": "2400 AD", "author": "Jeroen Tel", "released": "1988 Maniacs of Noise", "subtune": 1, "seconds": 460},
+        {"hvsc": "/MUSICIANS/T/Tel_Jeroen/Cybernoid_II.sid", "id": 118501, "title": "Cybernoid II", "author": "Jeroen Tel", "released": "1988 Hewson", "subtune": 1, "seconds": 346},
+        {"hvsc": "/MUSICIANS/T/Tel_Jeroen/Golden_Axe.sid", "id": 123559, "title": "Golden Axe", "author": "Jeroen Tel", "released": "1990 Probe Software/Virgin", "subtune": 1, "seconds": 255},
+        {"hvsc": "/MUSICIANS/T/Tel_Jeroen/Hawkeye.sid", "id": 118510, "title": "Hawkeye", "author": "Jeroen Tel", "released": "1988 Thalamus", "subtune": 1, "seconds": 385},
+        {"hvsc": "/MUSICIANS/T/Tel_Jeroen/Turbo_Outrun.sid", "id": 118540, "title": "Turbo Outrun", "author": "Jeroen Tel", "released": "1989 US Gold/Probe", "subtune": 1, "seconds": 475},
+        {"hvsc": "/MUSICIANS/T/Tel_Jeroen/Cybernoid.sid", "id": 118500, "title": "Cybernoid", "author": "Jeroen Tel", "released": "1988 Hewson", "subtune": 1, "seconds": 400},
+        {"hvsc": "/MUSICIANS/D/Deenen_Charles/Zamzara.sid", "id": 115920, "title": "Zamzara", "author": "Charles Deenen", "released": "1989 Rack-It", "subtune": 1, "seconds": 331}
+      ]
+    },
+    {
+      "name": "TURRICAN FM",
+      "tagline": "CHRIS HUELSBECK AND COMPANY",
+      "tracks": [
+        {"hvsc": "/MUSICIANS/V/Vaca_Ramiro/Turrican.sid", "id": 156112, "title": "Turrican", "author": "R.Vaca, C.Hülsbeck & S.Hartwig", "released": "1990 Rainbow Arts", "subtune": 1, "seconds": 100},
+        {"hvsc": "/MUSICIANS/H/Huelsbeck_Chris/Hollywood_Poker_Pro.sid", "id": 50131, "title": "Hollywood Poker Pro", "author": "Chris Hülsbeck", "released": "1989 reLINE Software", "subtune": 1, "seconds": 363},
+        {"hvsc": "/MUSICIANS/H/Huelsbeck_Chris/Italo_Disco_Inspiration.sid", "id": 104567, "title": "Italo Disco Inspiration", "author": "Chris Hülsbeck", "released": "1988 Chris Hülsbeck", "subtune": 1, "seconds": 235},
+        {"hvsc": "/MUSICIANS/H/Huelsbeck_Chris/Axel_F.sid", "id": 133131, "title": "Axel F.", "author": "Chris Hülsbeck", "released": "1986 64'er/Markt & Technik", "subtune": 1, "seconds": 105},
+        {"hvsc": "/MUSICIANS/H/Huelsbeck_Chris/Madness.sid", "id": 148458, "title": "Madness", "author": "Chris Hülsbeck", "released": "1987 Rainbow Arts", "subtune": 1, "seconds": 286},
+        {"hvsc": "/MUSICIANS/H/Huelsbeck_Chris/R-Type.sid", "id": 104574, "title": "R-Type", "author": "Chris Hülsbeck & Ramiro Vaca", "released": "1988 Activision", "subtune": 1, "seconds": 131}
+      ]
+    },
+    {
+      "name": "LOADER AM",
+      "tagline": "TUNES TO WATCH A TAPE COUNTER TO",
+      "tracks": [
+        {"hvsc": "/MUSICIANS/F/Follin_Tim/Ghouls_n_Ghosts.sid", "id": 154708, "title": "Ghouls 'n' Ghosts", "author": "Tim Follin", "released": "1989 US Gold/Capcom", "subtune": 1, "seconds": 259},
+        {"hvsc": "/MUSICIANS/G/Galway_Martin/Ocean_Loader_2.sid", "id": 122361, "title": "Ocean Loader 2", "author": "Martin Galway", "released": "1985 Ocean", "subtune": 1, "seconds": 253},
+        {"hvsc": "/MUSICIANS/D/Dunn_Jonathan/Ocean_Loader_5.sid", "id": 119933, "title": "Ocean Loader 5", "author": "Jonathan Dunn", "released": "1988 Ocean", "subtune": 1, "seconds": 191},
+        {"hvsc": "/MUSICIANS/C/Crabtree_Ian/Outrun.sid", "id": 151422, "title": "Outrun", "author": "Ian W. Crabtree", "released": "1988 Archangel Developments", "subtune": 1, "seconds": 171},
+        {"hvsc": "/MUSICIANS/S/Simon_Laszlo/Ghosts_n_Goblins.sid", "id": 128878, "title": "Ghosts 'n' Goblins", "author": "László Simon (Roy)", "released": "1991 Replay", "subtune": 1, "seconds": 158},
+        {"hvsc": "/MUSICIANS/D/Daglish_Ben/Last_Ninja.sid", "id": 140487, "title": "The Last Ninja", "author": "Ben Daglish & Anthony Lees", "released": "1987 System 3", "subtune": 3, "seconds": 261},
+        {"hvsc": "/MUSICIANS/D/Daglish_Ben/DeathWish_III.sid", "id": 69589, "title": "DeathWish III", "author": "Ben Daglish", "released": "1987 Gremlin Graphics", "subtune": 1, "seconds": 178},
+        {"hvsc": "/MUSICIANS/W/Whittaker_David/Speedball.sid", "id": 125914, "title": "Speedball", "author": "David Whittaker", "released": "1989 Image Works", "subtune": 1, "seconds": 150},
+        {"hvsc": "/MUSICIANS/M/Mad_Donne_Marcel/Scorpion.sid", "id": 62961, "title": "Scorpion", "author": "Marcel Donné (Mad)", "released": "1988 Rack-It", "subtune": 1, "seconds": 190},
+        {"hvsc": "/MUSICIANS/G/Gray_Fred/Batman_the_Caped_Crusader.sid", "id": 116332, "title": "Batman, the Caped Crusader", "author": "Fred Gray", "released": "1988 Ocean", "subtune": 4, "seconds": 199}
+      ]
+    }
+  ]
+}
