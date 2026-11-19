@@ -5,7 +5,7 @@ import { R, clamp, hyp, mod } from './util.js';
 import { TOUCH, cx, g, scr } from './screen.js';
 import { ctext, text } from './font.js';
 import { ARW, carSpr, pedSpr } from './sprites.js';
-import { CHOP, JOBPTS, PAINT } from './world.js';
+import { CHOP, JOBPTS, PAINT, waterAt } from './world.js';
 import { mapC } from './worldview.js';
 import { G, P, onScreen, ppos } from './state.js';
 import { npText, radio, radioAudible } from './radio.js';
@@ -31,6 +31,23 @@ function marker(x, y, ch, c1, c2) {
   text(ch, sx - 4, sy - 4, f ? c1 : c2);
 }
 const PKI = { ammo: ['A', 8, 7], cash: ['$', 5, 13], donut: ['O', 10, 1], med: ['+', 1, 2] };
+/** Someone in the water: just a head and one arm above the surface, with ripples round them. */
+function drawSwimmer(p) {
+  const sx = Math.round(p.x - camXi),
+    sy = Math.round(p.y - camYi),
+    f = Math.floor(G.clock * 3 + p.x * 0.1) & 1;
+  g.fillStyle = PAL[14];
+  g.fillRect(sx - 5, sy + (f ? 1 : 2), 3, 1);
+  g.fillRect(sx + 3, sy + (f ? 2 : 1), 3, 1);
+  g.fillRect(sx - 2, sy + 3, 5, 1);
+  g.fillStyle = PAL[1];
+  g.fillRect(f ? sx - 3 : sx + 3, sy + 3, 1, 1);
+  g.fillStyle = PAL[p.hair];
+  g.fillRect(sx - 1, sy - 2, 3, 2);
+  g.fillStyle = PAL[p.skin];
+  g.fillRect(sx - 1, sy, 3, 2);
+  g.fillRect(f ? sx - 3 : sx + 3, sy - 1, 1, 2);
+}
 function drawWorld() {
   camXi = Math.round(G.camX);
   camYi = Math.round(G.camY);
@@ -51,10 +68,15 @@ function drawWorld() {
     g.fillRect(sx, sy, 8, 8);
     text(d[0], sx, sy, d[2]);
   }
-  for (const p of G.peds)
-    if (onScreen(p.x, p.y, 8)) drawSpr(pedSpr(p, Math.floor(p.anim) & 1), Math.atan2(p.dy, p.dx), p.x, p.y);
-  if (!P.car && G.screen !== 'down' && !(P.hitT > 0 && Math.floor(G.clock * 20) & 1))
-    drawSpr(pedSpr(P, Math.floor(P.anim) & 1), P.a, P.x, P.y);
+  for (const p of G.peds) {
+    if (!onScreen(p.x, p.y, 8)) continue;
+    if (waterAt(p.x, p.y)) drawSwimmer(p);
+    else drawSpr(pedSpr(p, Math.floor(p.anim) & 1), Math.atan2(p.dy, p.dx), p.x, p.y);
+  }
+  if (!P.car && G.screen !== 'down' && !(P.hitT > 0 && Math.floor(G.clock * 20) & 1)) {
+    if (waterAt(P.x, P.y)) drawSwimmer(P);
+    else drawSpr(pedSpr(P, Math.floor(P.anim) & 1), P.a, P.x, P.y);
+  }
   for (const c of G.cars) {
     if (!onScreen(c.x, c.y, 20)) continue;
     drawSpr(carSpr(c), c.a, c.x, c.y);

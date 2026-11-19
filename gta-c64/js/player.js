@@ -2,7 +2,7 @@
 // The player on foot and at the wheel: movement, weapons, getting in and out of cars, dying and getting arrested.
 import { DIRS, JACK, KIND } from './config.js';
 import { hyp, pick } from './util.js';
-import { COPS, HOSP, solidAt } from './world.js';
+import { COPS, HOSP, wallAt, waterAt } from './world.js';
 import { noise, sfx } from './audio.js';
 import { G, K, P, bigText, edge, msg } from './state.js';
 import { mkPed } from './entities.js';
@@ -110,7 +110,9 @@ function exitCar() {
   sfx.door();
 }
 const footHits = (x, y) =>
-  solidAt(x - 3, y - 3) || solidAt(x + 3, y - 3) || solidAt(x - 3, y + 3) || solidAt(x + 3, y + 3);
+  wallAt(x - 3, y - 3) || wallAt(x + 3, y - 3) || wallAt(x - 3, y + 3) || wallAt(x + 3, y + 3);
+export const WALK_SPEED = 58,
+  SWIM_SPEED = 22;
 export function updPlayer(dt) {
   if (G.screen !== 'play') return;
   P.hitT -= dt;
@@ -137,6 +139,10 @@ export function updPlayer(dt) {
       msg('YOUR CAR IS ON FIRE. THIS IS FINE.');
     }
   } else {
+    // In the water the player swims: slowly, and with both hands busy.
+    const swim = waterAt(P.x, P.y);
+    if (swim && !P.swim) sfx.splash();
+    P.swim = swim;
     let dx = (K.right ? 1 : 0) - (K.left ? 1 : 0),
       dy = (K.down ? 1 : 0) - (K.up ? 1 : 0);
     if (dx || dy) {
@@ -144,13 +150,13 @@ export function updPlayer(dt) {
       dx /= l;
       dy /= l;
       P.a = Math.atan2(dy, dx);
-      const s = 58 * dt;
+      const s = (swim ? SWIM_SPEED : WALK_SPEED) * dt;
       if (!footHits(P.x + dx * s, P.y)) P.x += dx * s;
       if (!footHits(P.x, P.y + dy * s)) P.y += dy * s;
       P.anim += dt * 9;
     }
     P.cd -= dt;
-    if (K.fire && P.cd <= 0) {
+    if (K.fire && P.cd <= 0 && !swim) {
       const fx = Math.cos(P.a),
         fy = Math.sin(P.a);
       if (P.ammo > 0) {

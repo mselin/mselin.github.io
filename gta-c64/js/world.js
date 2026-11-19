@@ -29,8 +29,12 @@ export const solidAt = (x, y) => solidT(tileAt(x, y));
 /** Water a car can end up in: the canal and the fountain pools. */
 export const isWater = (t) => t === WATER || t === FOUNT;
 export const waterAt = (x, y) => isWater(tileAt(x, y));
-/** What stops a car: buildings and trees. Water does not; it floods the car instead. */
+/**
+ * What stops cars and people: buildings, trees and the edge of the map.
+ * Water does not: cars flood in it and people swim, slowly.
+ */
 export const wallAt = (x, y) => {
+  if (x < 0 || y < 0 || x >= MW * 16 || y >= MW * 16) return true; // the edge of the world
   const t = tileAt(x, y);
   return solidT(t) && !isWater(t);
 };
