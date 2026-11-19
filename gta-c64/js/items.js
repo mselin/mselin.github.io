@@ -36,7 +36,8 @@ export function updBullets(dt) {
     }
     if (b.l > 0)
       for (const c of G.cars) {
-        if (c.dead) continue;
+        // Wrecks are spent, and a car on the bottom of the canal is out of reach.
+        if (c.dead || (c.flooded && c.sink >= 1)) continue;
         if (hyp(c.x - b.x, c.y - b.y) < 8) {
           if (b.own === 1 && c !== P.car) continue;
           c.hp -= b.own === 0 ? 20 : 7;

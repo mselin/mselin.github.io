@@ -190,7 +190,7 @@ test('reaching the goal shows the victory screen, and Y starts over from nothing
     s.startJob();
     s.passJob();
   });
-  assert.equal(await game.screen(), 'win');
+  await game.until((s) => s.G.screen === 'win');
   await game.wait(1200);
   await game.press('KeyY');
   await game.until((s) => s.G.screen === 'play');
@@ -198,4 +198,33 @@ test('reaching the goal shows the victory screen, and Y starts over from nothing
   // The second game starts with the first job again.
   await game.read((s) => s.startJob());
   assert.equal(await game.read((s) => s.G.job.def.t), 'PIZZA? SURE.');
+});
+
+test('the election fund can also be filled with loose cash, not only by finishing a job', async () => {
+  await game.start();
+  await game.read((s) => (s.G.cash = 25000));
+  await game.until((s) => s.G.screen === 'win');
+});
+
+test('delivering the limo leaves the player standing somewhere they can walk from', async () => {
+  await game.start();
+  await game.read((s) => {
+    for (let i = 0; i < 2; i++) {
+      s.startJob();
+      s.passJob();
+    }
+    s.G.cash = 0;
+    s.startJob();
+    if (s.G.job.def.type !== 'steal') throw new Error('expected the limo job');
+    const limo = s.G.job.car;
+    // Parked hard against the chop shop wall, the worst case for getting out.
+    limo.x = 1264;
+    limo.y = 1193;
+    limo.a = 0;
+    s.P.car = limo;
+  });
+  await game.until((s) => !s.G.job && !s.P.car);
+  const x0 = await game.read((s) => s.P.x);
+  await game.page.keyboard.down('ArrowLeft');
+  await game.until(`(s) => s.P.x < ${x0} - 10`);
 });

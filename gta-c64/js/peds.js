@@ -9,10 +9,11 @@ import { crime } from './heat.js';
 import { down } from './player.js';
 
 let immunity = false;
-export function killPed(p, byPlayer) {
-  const i = G.peds.indexOf(p);
-  if (i < 0) return;
-  G.peds.splice(i, 1);
+export function resetPeds() {
+  immunity = false;
+}
+/** Leave a mark on the ground where someone died. */
+function stain(p) {
   decals.ctx.fillStyle = PAL[2];
   for (let k = 0; k < 12; k++)
     decals.ctx.fillRect(
@@ -23,6 +24,12 @@ export function killPed(p, byPlayer) {
     );
   decals.ctx.fillStyle = PAL[p.shirt];
   decals.ctx.fillRect(Math.floor(p.x) - 1, Math.floor(p.y) - 2, 3, 4);
+}
+export function killPed(p, byPlayer) {
+  const i = G.peds.indexOf(p);
+  if (i < 0) return;
+  G.peds.splice(i, 1);
+  if (!waterAt(p.x, p.y)) stain(p);
   if (onScreen(p.x, p.y, 10)) sfx.squish();
   if (byPlayer) {
     crime(p.type === 'cop' ? 28 : 6);

@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Jobs: starting, tracking, passing and failing them.
-import { GOAL, JOBS, KIND, MW, WALK } from './config.js';
+import { JOBS, KIND, MW, WALK } from './config.js';
 import { R, hyp } from './util.js';
-import { CHOP, HALL, JOBPTS, map } from './world.js';
+import { CHOP, HALL, JOBPTS, map, nearestLand } from './world.js';
 import { sfx } from './audio.js';
 import { G, P, bigText, msg, ppos } from './state.js';
 import { mkCar } from './entities.js';
 import { crime } from './heat.js';
+import { sidePos } from './cars.js';
 
-let won = false;
 let jobI = 0;
 export function resetMissions() {
-  won = false;
   jobI = 0;
 }
 function farSpot(min, max) {
@@ -59,10 +58,6 @@ export function passJob() {
   sfx.good();
   jobI++;
   G.job = null;
-  if (G.cash >= GOAL && !won) {
-    won = true;
-    G.screen = 'win';
-  }
 }
 export function failJob(why) {
   if (!G.job) return;
@@ -101,8 +96,10 @@ export function updJob(dt) {
     if (G.job.stage === 1 && P.car === G.job.car && hyp(p.x - CHOP.x, p.y - CHOP.y) < 18) {
       const c = G.job.car;
       P.car = null;
-      P.x = c.x;
-      P.y = c.y + 14;
+      // Step out beside the limo, wherever there is room to stand.
+      const out = sidePos(c) || nearestLand(c.x, c.y) || c;
+      P.x = out.x;
+      P.y = out.y;
       G.cars.splice(G.cars.indexOf(c), 1);
       return passJob();
     }
