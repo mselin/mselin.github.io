@@ -52,6 +52,19 @@ function infoRender() {
     if (t.author) row('Author', t.author);
     if (t.released) row('Released', t.released);
     if (t.id) row('Source', hvscLink(t, 'This tune in the High Voltage SID Collection'));
+    // How hard the emulator is working: useful when the sound is choppy on a phone.
+    const h = G.sidPlayer && G.sidPlayer.health();
+    if (h && h.load > 0)
+      row(
+        'SID player',
+        'Using ' +
+          Math.round(h.load * 100) +
+          '% of the time it has' +
+          (h.economy ? ', in economy mode' : '') +
+          (h.struggling
+            ? '. This device cannot keep up, so the sound breaks up. If your browser has JIT switched off (some hardened browsers do by default), allow it for this site.'
+            : '.'),
+      );
   }
   const pl = $('plist');
   pl.textContent = '';

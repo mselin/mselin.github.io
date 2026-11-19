@@ -32,10 +32,13 @@ function testTune(title = 'Test Tune', author = 'Nobody', released = '2026 Tests
 /**
  * Open the game in a fresh page.
  * Requests to HVSC are answered locally with the test tune and counted in `game.hvscRequests`.
+ * `options.browserArgs` adds Chromium command-line switches.
  */
-async function openGame() {
+async function openGame(options = {}) {
   const server = await serve(0);
-  const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = await chromium.launch({
+    args: ['--autoplay-policy=no-user-gesture-required', ...(options.browserArgs || [])],
+  });
   const page = await browser.newPage({ viewport: { width: 960, height: 680 } });
   const game = { page, errors: [], hvscRequests: [] };
   page.on('pageerror', (e) => game.errors.push(e.message));
@@ -56,6 +59,19 @@ async function openGame() {
   game.wait = (ms) => page.waitForTimeout(ms);
   /** Wait until a condition on the game handle holds. */
   game.until = (fn, timeout = 8000) => page.waitForFunction(`(${fn})(window.sleazeburg)`, null, { timeout });
+  /**
+   * Press a key every 300 ms until a condition holds. For prompts that ignore input for a moment of game time,
+   * which on a slow machine is longer than the same moment on the clock.
+   */
+  game.pressUntil = async (key, fn, timeout = 15000) => {
+    const end = Date.now() + timeout;
+    while (Date.now() < end) {
+      await page.keyboard.press(key);
+      await page.waitForTimeout(300);
+      if (await page.evaluate(`(${fn})(window.sleazeburg)`)) return;
+    }
+    throw new Error(`pressing ${key} never led to: ${fn}`);
+  };
   /** Skip the boot screen and the title screen. */
   game.start = async () => {
     await game.press('Space');

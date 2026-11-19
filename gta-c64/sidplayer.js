@@ -59,7 +59,7 @@ export function load(data, wantSong) {
     const def = (data[0x10] << 8) | data[0x11];
     song = wantSong >= 1 && wantSong <= info.songs ? wantSong : def >= 1 && def <= info.songs ? def : 1;
     bytes = data;
-    opts = { chips: countSids(data), model: sidModel(data) };
+    opts = { chips: countSids(data), model: sidModel(data), quality: economy ? ECONOMY.quality : 1 };
     return {
       title: info.name || '',
       author: info.author || '',
@@ -78,6 +78,8 @@ export function play() {
       if (!player.loadSID(bytes, 0, song)) throw new Error('unable to load this tune');
       if (!(await audio.start(opts))) throw new Error('audio output could not be configured');
       started = true;
+      lastStarved = 0;
+      if (economy) audio.setTarget(ECONOMY.buffer, ECONOMY.steps);
     }
     if (audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume().catch(() => {});
     player.pause(false);
@@ -118,6 +120,61 @@ export function timeMs() {
 /** Browsers start audio suspended until the user interacts with the page; call this from a key or pointer event. */
 export function unlock() {
   if (audio && audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume().catch(() => {});
+}
+/** Resolves once the emulator has started, and rejects if this browser cannot run it at all. */
+export function ready() {
+  return queue(init);
+}
+
+// --- Keeping up on slow devices ---
+// The emulator runs a whole Commodore 64 on the page's main thread. A phone, or a browser that runs WebAssembly
+// without its optimising compiler (some hardened browsers do, by default), may not manage that in real time,
+// which is heard as choppy sound. tend() watches for gaps and eases the load once; after that it can only report.
+const ECONOMY = { quality: 0, buffer: 0.8, steps: 40 }; // cheaper resampling and a deeper buffer
+const GAP_MS = 120; // more than this much silence invented in a second counts against the device
+let economy = false,
+  lastStarved = 0,
+  strikes = 0,
+  toldStruggling = false;
+
+/** How the output is coping, for the information page: null before anything plays. */
+export function health() {
+  if (!audio || !audio.node) return null;
+  const s = audio.stats();
+  // A PAL frame is 20 ms of sound, so 20 ms of work per frame is exactly real time.
+  return { load: s.msPerFrame / 20, starvedMs: s.starvedMs, economy, struggling: toldStruggling };
+}
+/**
+ * Call about once a second while a tune plays. Returns 'eased' the moment economy mode is switched on,
+ * 'struggling' once if that was not enough, and otherwise 'ok'.
+ */
+export function tend() {
+  if (!audio || !audio.node || !started) return 'ok';
+  const s = audio.stats();
+  const gap = Math.max(0, s.starvedMs - lastStarved);
+  lastStarved = s.starvedMs;
+  if (s.skipping) return 'ok';
+  strikes = gap > GAP_MS ? strikes + 1 : Math.max(0, strikes - 1);
+  if (strikes < 3) return 'ok';
+  strikes = 0;
+  if (!economy) {
+    economy = true;
+    queue(async () => {
+      if (!bytes || !started) return;
+      opts = { ...opts, quality: ECONOMY.quality };
+      audio.unrun();
+      audio.flush();
+      await audio.start(opts);
+      audio.setTarget(ECONOMY.buffer, ECONOMY.steps);
+      audio.run(player, { skipSilence: false });
+    });
+    return 'eased';
+  }
+  if (!toldStruggling) {
+    toldStruggling = true;
+    return 'struggling';
+  }
+  return 'ok';
 }
 /** Peak output level, 0 to 1. Used for testing. */
 export function level() {

@@ -154,9 +154,7 @@ test('an arrest with no money ends the game; N returns to the title for a fresh 
     s.down('busted');
   });
   await game.until((s) => s.G.screen === 'over');
-  await game.wait(1200);
-  await game.press('KeyN');
-  await game.until((s) => s.G.screen === 'title');
+  await game.pressUntil('KeyN', (s) => s.G.screen === 'title');
   await game.press('Space');
   await game.until((s) => s.G.screen === 'play');
   const fresh = await game.read((s) => ({
@@ -178,9 +176,7 @@ test('the game-over screen ignores keys for a moment, then Y starts a new game',
   await game.press('KeyY');
   await game.wait(200);
   assert.equal(await game.screen(), 'over', 'too early to answer');
-  await game.wait(1100);
-  await game.press('KeyY');
-  await game.until((s) => s.G.screen === 'play' && s.P.hp === 100 && s.G.cars.length > 10);
+  await game.pressUntil('KeyY', (s) => s.G.screen === 'play' && s.P.hp === 100 && s.G.cars.length > 10);
 });
 
 test('reaching the goal shows the victory screen, and Y starts over from nothing', async () => {
@@ -191,9 +187,7 @@ test('reaching the goal shows the victory screen, and Y starts over from nothing
     s.passJob();
   });
   await game.until((s) => s.G.screen === 'win');
-  await game.wait(1200);
-  await game.press('KeyY');
-  await game.until((s) => s.G.screen === 'play');
+  await game.pressUntil('KeyY', (s) => s.G.screen === 'play');
   assert.equal(await game.read((s) => s.G.cash), 0);
   // The second game starts with the first job again.
   await game.read((s) => s.startJob());
