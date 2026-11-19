@@ -2,9 +2,10 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND } from '../../js/config.js';
-import { genMap, solidAt } from '../../js/world.js';
+import { genMap, nearestLand, solidAt, wallAt, waterAt } from '../../js/world.js';
 import { mkCar } from '../../js/entities.js';
 import { carHits, carPhys } from '../../js/cars.js';
+import { G, P } from '../../js/state.js';
 
 const DT = 1 / 60;
 const SOUTH = Math.PI / 2;
@@ -86,4 +87,51 @@ test('carHits reports walls, not open road', () => {
   const c = onRoad();
   assert.equal(carHits(c, 8, 60), false);
   assert.equal(carHits(c, 300, 300), true, 'inside the hospital');
+});
+
+/** A car on the avenue west of the canal, pointing east at the water (which starts at x = 816). */
+const atCanal = (kind = KIND.sedan) => mkCar(kind, 776, 100, 0);
+
+test('water does not block a car the way a wall does', () => {
+  assert.ok(waterAt(880, 100) && solidAt(880, 100), 'the canal is water, and nobody walks on it');
+  assert.equal(wallAt(880, 100), false);
+  assert.equal(wallAt(300, 300), true, 'a building is a wall');
+  assert.equal(carHits(atCanal(), 880, 100), false);
+});
+
+test('a car driven into the canal floods, stops, and does not blow up', () => {
+  const c = atCanal();
+  drive(c, 3, 1);
+  assert.equal(c.flooded, true);
+  assert.ok(c.x > 816 && c.x < 944, `came to rest in the canal, x=${c.x}`);
+  assert.ok(speed(c) < 1, 'stopped');
+  assert.equal(c.hp, KIND.sedan.hp, 'no damage');
+  assert.equal(c.dead, false);
+  assert.ok(!c.burn, 'not on fire');
+});
+
+test('a flooded car no longer responds to the controls', () => {
+  const c = atCanal();
+  drive(c, 6, 1);
+  const { x, y, a } = c;
+  drive(c, 2, 1, 1);
+  drive(c, 2, -1, -1, true);
+  assert.equal(c.a, a, 'does not turn');
+  assert.ok(Math.hypot(c.x - x, c.y - y) < 0.5, 'does not move');
+});
+
+test('the driver of a flooding car is put ashore on dry land', () => {
+  const c = atCanal();
+  P.car = c;
+  drive(c, 3, 1);
+  assert.equal(P.car, null, 'no longer in the car');
+  assert.ok(!solidAt(P.x, P.y), 'standing somewhere walkable');
+  assert.ok(Math.hypot(P.x - c.x, P.y - c.y) < 150, 'close to where the car went in');
+  assert.match(G.msgTxt, /SWIM ASHORE/);
+});
+
+test('nearestLand finds the bank from the middle of the canal', () => {
+  const land = nearestLand(880, 112);
+  assert.ok(land && !solidAt(land.x, land.y));
+  assert.deepEqual(nearestLand(8, 60), { x: 8, y: 60 }, 'already on land');
 });

@@ -67,7 +67,7 @@ function enterCar() {
   let best = null,
     bd = 19;
   for (const c of G.cars) {
-    if (c.dead) continue;
+    if (c.dead || c.flooded) continue;
     const d = hyp(c.x - P.x, c.y - P.y);
     if (d < bd) {
       bd = d;

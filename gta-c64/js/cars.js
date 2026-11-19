@@ -2,9 +2,9 @@
 // Car handling, collisions, traffic and police driving, damage and explosions.
 import { BLK, DIRS, GRASS, GRIP, KIND, LOT, NB, PAL, PI, PLAZA, ROAD, WALK, WPX } from './config.js';
 import { R, angDiff, clamp, hyp, mod, pick } from './util.js';
-import { decals, solidAt, tileAt } from './world.js';
+import { decals, nearestLand, solidAt, tileAt, wallAt, waterAt } from './world.js';
 import { sfx } from './audio.js';
-import { G, P, onScreen, pop, ppos } from './state.js';
+import { G, P, msg, onScreen, pop, ppos } from './state.js';
 import { mkPed } from './entities.js';
 import { crime } from './heat.js';
 import { killPed } from './peds.js';
@@ -18,12 +18,7 @@ export function carHits(c, x, y) {
   for (let t = -1; t <= 1; t++) {
     const px = x + cs * h * t,
       py = y + sn * h * t;
-    if (
-      solidAt(px - 4, py - 4) ||
-      solidAt(px + 4, py - 4) ||
-      solidAt(px - 4, py + 4) ||
-      solidAt(px + 4, py + 4)
-    )
+    if (wallAt(px - 4, py - 4) || wallAt(px + 4, py - 4) || wallAt(px - 4, py + 4) || wallAt(px + 4, py + 4))
       return true;
   }
   return false;
@@ -78,7 +73,57 @@ function skid(c, on) {
   }
   c.sk = on ? p : null;
 }
+/**
+ * A car whose middle is over water floods: the engine dies for good and it settles where it is.
+ * It does not catch fire or blow up from this. A driver gets out and swims to the nearest dry land.
+ */
+export function flood(c) {
+  if (c.flooded || c.dead) return;
+  c.flooded = true;
+  c.ai = null;
+  c.driver = false;
+  c.parked = false;
+  if (onScreen(c.x, c.y, 20)) {
+    sfx.splash();
+    for (let i = 0; i < 26; i++) {
+      const a = R() * 7,
+        s = 20 + R() * 70;
+      G.parts.push({
+        x: c.x,
+        y: c.y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s,
+        l: 0.3 + R() * 0.4,
+        col: pick([1, 3, 14]),
+        s: 2,
+      });
+    }
+  }
+  if (P.car === c) {
+    const land = nearestLand(c.x, c.y);
+    P.car = null;
+    if (land) {
+      P.x = land.x;
+      P.y = land.y;
+    }
+    msg('YOU SWIM ASHORE. THE CAR DOES NOT. THE WARRANTY DOES NOT COVER THIS.');
+  }
+  if (G.job && G.job.car === c) failJob('THE LIMO IS NOW A SUBMARINE');
+}
 export function carPhys(c, thr, steer, dt, hb) {
+  if (c.flooded) {
+    // Dead in the water: no engine, no steering, just the last of its momentum.
+    const drag = Math.max(0, 1 - 5 * dt);
+    c.vx *= drag;
+    c.vy *= drag;
+    if (!carHits(c, c.x + c.vx * dt, c.y + c.vy * dt)) {
+      c.x += c.vx * dt;
+      c.y += c.vy * dt;
+    }
+    c.slide = 0;
+    skid(c, false);
+    return;
+  }
   const k = c.kind,
     oa = c.a;
   let fx = Math.cos(c.a),
@@ -120,6 +165,7 @@ export function carPhys(c, thr, steer, dt, hb) {
   } else c.y = ny;
   c.x = clamp(c.x, 8, WPX - 8);
   c.y = clamp(c.y, 8, WPX - 8);
+  if (waterAt(c.x, c.y)) flood(c);
 }
 function trafficAI(c, dt) {
   const D = DIRS[c.dir];
@@ -419,8 +465,9 @@ export function updCars(dt) {
         }
         if (rv < -40) {
           const dm = (-rv - 40) * 0.22;
-          if (!a.dead) a.hp -= dm;
-          if (!b.dead) b.hp -= dm;
+          // A flooded car is already written off; knocks do not set it alight.
+          if (!a.dead && !a.flooded) a.hp -= dm;
+          if (!b.dead && !b.flooded) b.hp -= dm;
           if (onScreen(a.x, a.y, 0)) sfx.crash(-rv / 250);
           const mine = a === P.car ? b : b === P.car ? a : null;
           if (mine) {

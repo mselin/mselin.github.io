@@ -95,3 +95,35 @@ test('Esc asks before returning to the title screen, and the game is kept', asyn
   await game.until((s) => s.G.screen === 'play');
   assert.equal(await game.read((s) => s.G.cash), 1234);
 });
+
+test('driving into the canal floods the car and puts the player ashore', async () => {
+  await game.start();
+  await game.read((s) => {
+    const car = s.mkCar(s.KIND.sedan, 776, 100, 0, 2);
+    s.G.cars = s.G.cars.filter((c) => c.parked);
+    s.G.cars.push(car);
+    s.P.car = car;
+    window.testCar = car;
+  });
+  await game.page.keyboard.down('ArrowUp');
+  await game.until(() => window.testCar.flooded);
+  await game.page.keyboard.up('ArrowUp');
+  await game.until((s) => !s.P.car);
+  await game.wait(1500);
+  const car = await game.page.evaluate(() => ({
+    dead: window.testCar.dead,
+    burn: window.testCar.burn,
+    speed: Math.hypot(window.testCar.vx, window.testCar.vy),
+  }));
+  assert.deepEqual([car.dead, !!car.burn], [false, false], 'the car does not explode');
+  assert.ok(car.speed < 2, 'the car has stopped');
+
+  // The flooded car cannot be taken again.
+  await game.read((s) => {
+    s.P.x = window.testCar.x;
+    s.P.y = window.testCar.y;
+  });
+  await game.press('KeyE');
+  await game.wait(200);
+  assert.equal(await game.read((s) => !!s.P.car), false);
+});

@@ -26,6 +26,25 @@ export const tile = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MW ? WATE
 export const tileAt = (x, y) => tile(Math.floor(x / 16), Math.floor(y / 16));
 const solidT = (t) => t === BLD || t === WATER || t === TREE || t === FOUNT;
 export const solidAt = (x, y) => solidT(tileAt(x, y));
+/** Water a car can end up in: the canal and the fountain pools. */
+export const isWater = (t) => t === WATER || t === FOUNT;
+export const waterAt = (x, y) => isWater(tileAt(x, y));
+/** What stops a car: buildings and trees. Water does not; it floods the car instead. */
+export const wallAt = (x, y) => {
+  const t = tileAt(x, y);
+  return solidT(t) && !isWater(t);
+};
+/** The closest spot to (x, y) that can be stood on, searching outwards in rings. Null if there is none nearby. */
+export function nearestLand(x, y) {
+  for (let r = 0; r <= 200; r += 4) {
+    for (let i = 0; i < 16; i++) {
+      const px = x + Math.cos((i / 16) * Math.PI * 2) * r,
+        py = y + Math.sin((i / 16) * Math.PI * 2) * r;
+      if (!solidAt(px, py) && !solidAt(px - 3, py - 3) && !solidAt(px + 3, py + 3)) return { x: px, y: py };
+    }
+  }
+  return null;
+}
 export const signs = [],
   parkSpots = [];
 export const decals = { ctx: { fillStyle: '', fillRect() {} } };
