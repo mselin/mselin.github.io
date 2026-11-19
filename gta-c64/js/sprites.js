@@ -2,6 +2,7 @@
 // Car, pedestrian and arrow sprites, pre-rotated from small pixel grids.
 import { PI, RGB } from './config.js';
 import { hash } from './util.js';
+import { sinkStage } from './entities.js';
 
 function mkSprite(src, w, h, NA, S) {
   const fr = [];
@@ -94,14 +95,53 @@ function carSrc(k, col) {
   } else for (let i = 0; i < a.length; i++) if (a[i] === 11 && hash(i, 7) % 3 === 0) a[i] = 0;
   return a;
 }
+/**
+ * Redraw a car's pixels as seen through water. Stage 1: the waterline laps round the edge.
+ * Stage 2: water over the bodywork, so every other pixel is water and the rim is gone.
+ * Stage 3: on the bottom, a dark shape with only the glass catching the light, and ripples across the top.
+ */
+function submerge(src, L, W, stage) {
+  const at = (x, y) => (x < 0 || y < 0 || x >= L || y >= W ? -1 : src[y * L + x]);
+  const out = src.slice();
+  for (let y = 0; y < W; y++)
+    for (let x = 0; x < L; x++) {
+      const i = y * L + x,
+        p = src[i];
+      if (p < 0) continue;
+      const edge = at(x - 1, y) < 0 || at(x + 1, y) < 0 || at(x, y - 1) < 0 || at(x, y + 1) < 0,
+        rim = x < 2 || y < 2 || x >= L - 2 || y >= W - 2,
+        light = [1, 3, 7, 13, 15].includes(p),
+        odd = (x + y) & 1;
+      if (stage === 1) {
+        if (edge) out[i] = 14;
+      } else if (stage === 2) {
+        if (edge) out[i] = 6;
+        else if (rim) out[i] = odd ? 14 : 6;
+        else if (odd) out[i] = 6;
+        else if (light) out[i] = 14;
+      } else {
+        if (rim) out[i] = edge ? -1 : 6;
+        else out[i] = p === 3 ? 14 : odd ? 0 : 6; // only the glass still catches the light
+      }
+    }
+  if (stage === 3) {
+    const m = W >> 1;
+    for (const [x0, y, n] of [
+      [3, 2, 4],
+      [L - 9, W - 3, 5],
+      [7, m, 3],
+    ])
+      for (let x = x0; x < x0 + n; x++) out[y * L + x] = 14;
+  }
+  return out;
+}
 const sprC = {};
 export function carSpr(c) {
-  const key = c.kind.n + (c.dead ? 'w' : c.col) + (c.flooded ? 'f' : '');
+  const stage = sinkStage(c),
+    key = c.kind.n + (c.dead ? 'w' : c.col) + (stage ? 'f' + stage : '');
   if (sprC[key]) return sprC[key];
-  const src = carSrc(c.kind, c.dead ? -2 : c.col);
-  // Underwater: every other pixel is left out, so the water shows through.
-  if (c.flooded)
-    for (let i = 0; i < src.length; i++) if (((i % c.kind.L) + Math.floor(i / c.kind.L)) & 1) src[i] = -1;
+  let src = carSrc(c.kind, c.dead ? -2 : c.col);
+  if (stage) src = submerge(src, c.kind.L, c.kind.W, stage);
   return (sprC[key] = mkSprite(src, c.kind.L, c.kind.W, 32, 34));
 }
 function pedSrc(shirt, hair, skin, scoot, f) {
