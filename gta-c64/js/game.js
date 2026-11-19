@@ -4,18 +4,28 @@ import { GOAL, KIND, SW, VH, WPX } from './config.js';
 import { R, clamp, hyp } from './util.js';
 import { HOSP, parkSpots } from './world.js';
 import { engineSound } from './audio.js';
-import { G, P, edge, msg, ppos } from './state.js';
+import { renderMap } from './worldview.js';
+import { G, P, edge, msg, ppos, resetState } from './state.js';
 import { mkCar } from './entities.js';
 import { updHeat } from './heat.js';
 import { updCars } from './cars.js';
 import { updPeds } from './peds.js';
 import { respawn, updPlayer } from './player.js';
-import { updJob } from './missions.js';
+import { resetMissions, updJob } from './missions.js';
 import { placePickup, spawner } from './spawner.js';
 import { updBullets, updPickups } from './items.js';
 import { radioTick, sidVol } from './radio.js';
 
 let started = false;
+let endT = 0;
+/** Throw the finished game away: fresh state, a clean map without skid marks, cars and pickups back in place. */
+function resetGame() {
+  resetState();
+  resetMissions();
+  renderMap();
+  initWorld();
+  started = false;
+}
 function startGame() {
   G.screen = 'play';
   if (started) {
@@ -41,10 +51,19 @@ export function update(dt) {
     if (edge.fire || edge.use) startGame();
     return;
   }
-  if (G.screen === 'win') {
-    if (edge.fire || edge.use) G.screen = 'play';
+  if (G.screen === 'win' || G.screen === 'over') {
+    // New game? Answers are ignored for the first second, so a held key cannot skip the picture.
+    endT += dt;
+    if (endT > 1 && (edge.yes || edge.fire)) {
+      resetGame();
+      startGame();
+    } else if (endT > 1 && edge.no) {
+      resetGame();
+      G.screen = 'title';
+    }
     return;
   }
+  endT = 0;
   if (edge.pause) {
     G.paused = !G.paused;
     sidVol();

@@ -7,7 +7,8 @@ import { renderMap } from './worldview.js';
 import { G, K, P, edge } from './state.js';
 import { mkCar } from './entities.js';
 import { crime } from './heat.js';
-import { startJob } from './missions.js';
+import { passJob, startJob } from './missions.js';
+import { down } from './player.js';
 import { initWorld, update } from './game.js';
 import { draw } from './render.js';
 import { initRadio, radio, radioState, silence } from './radio.js';
@@ -38,4 +39,4 @@ requestAnimationFrame(frame);
 cv.focus();
 
 // A handle on the running game, for the browser tests and for poking at it from the console.
-window.sleazeburg = { G, P, K, KIND, mkCar, crime, startJob, radio, radioState, silence };
+window.sleazeburg = { G, P, K, KIND, mkCar, crime, down, startJob, passJob, radio, radioState, silence };

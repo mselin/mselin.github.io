@@ -10,6 +10,10 @@ import { crime } from './heat.js';
 
 let won = false;
 let jobI = 0;
+export function resetMissions() {
+  won = false;
+  jobI = 0;
+}
 function farSpot(min, max) {
   const p = ppos();
   for (let i = 0; i < 400; i++) {
@@ -49,7 +53,7 @@ export function startJob() {
   msg(def.txt);
   sfx.pick();
 }
-function passJob() {
+export function passJob() {
   G.cash += G.job.pay;
   bigText('JOB DONE', '+$' + G.job.pay + ' (UNDECLARED)', 13, 2.5);
   sfx.good();

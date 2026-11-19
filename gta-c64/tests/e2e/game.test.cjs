@@ -127,3 +127,66 @@ test('driving into the canal floods the car and puts the player ashore', async (
   await game.wait(200);
   assert.equal(await game.read((s) => !!s.P.car), false);
 });
+
+test('an arrest with money left costs a fine and the game goes on', async () => {
+  await game.start();
+  await game.read((s) => {
+    s.G.cash = 1000;
+    s.down('busted');
+  });
+  await game.until((s) => s.G.screen === 'play' && s.G.cash === 800);
+});
+
+test('an arrest with no money ends the game; N returns to the title for a fresh start', async () => {
+  await game.start();
+  await game.read((s) => {
+    s.crime(70);
+    s.P.ammo = 3;
+    s.down('busted');
+  });
+  await game.until((s) => s.G.screen === 'over');
+  await game.wait(1200);
+  await game.press('KeyN');
+  await game.until((s) => s.G.screen === 'title');
+  await game.press('Space');
+  await game.until((s) => s.G.screen === 'play');
+  const fresh = await game.read((s) => ({
+    cash: s.G.cash,
+    heat: s.G.heat,
+    hp: s.P.hp,
+    ammo: s.P.ammo,
+    job: s.G.job,
+    msg: s.G.msgTxt,
+  }));
+  assert.deepEqual([fresh.cash, fresh.heat, fresh.hp, fresh.ammo, fresh.job], [0, 0, 100, 12, null]);
+  assert.match(fresh.msg, /YOU WAKE UP OUTSIDE/);
+});
+
+test('the game-over screen ignores keys for a moment, then Y starts a new game', async () => {
+  await game.start();
+  await game.read((s) => s.down('busted'));
+  await game.until((s) => s.G.screen === 'over');
+  await game.press('KeyY');
+  await game.wait(200);
+  assert.equal(await game.screen(), 'over', 'too early to answer');
+  await game.wait(1100);
+  await game.press('KeyY');
+  await game.until((s) => s.G.screen === 'play' && s.P.hp === 100 && s.G.cars.length > 10);
+});
+
+test('reaching the goal shows the victory screen, and Y starts over from nothing', async () => {
+  await game.start();
+  await game.read((s) => {
+    s.G.cash = 24000;
+    s.startJob();
+    s.passJob();
+  });
+  assert.equal(await game.screen(), 'win');
+  await game.wait(1200);
+  await game.press('KeyY');
+  await game.until((s) => s.G.screen === 'play');
+  assert.equal(await game.read((s) => s.G.cash), 0);
+  // The second game starts with the first job again.
+  await game.read((s) => s.startJob());
+  assert.equal(await game.read((s) => s.G.job.def.t), 'PIZZA? SURE.');
+});

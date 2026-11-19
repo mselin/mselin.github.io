@@ -20,7 +20,9 @@ export const radio = [
   { name: 'RADIO OFF', tagline: 'ENJOY THE ENGINE NOISE' },
 ];
 const radioWant = () =>
-  G.musicOn && !G.paused && (G.screen === 'title' || G.screen === 'win' || (G.screen === 'play' && !!P.car));
+  G.musicOn &&
+  !G.paused &&
+  (G.screen === 'title' || G.screen === 'win' || G.screen === 'over' || (G.screen === 'play' && !!P.car));
 export const radioAudible = () => {
   const st = radio[G.station];
   return G.musicOn && (st.builtin || (!!st.tracks && sidReady && sidPlaying));

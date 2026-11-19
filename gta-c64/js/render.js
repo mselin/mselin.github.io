@@ -9,6 +9,7 @@ import { CHOP, JOBPTS, PAINT } from './world.js';
 import { mapC } from './worldview.js';
 import { G, P, onScreen, ppos } from './state.js';
 import { npText, radio, radioAudible } from './radio.js';
+import { drawEnding } from './endings.js';
 
 let camXi = 0;
 let camYi = 0;
@@ -263,28 +264,16 @@ function drawBoot() {
     if (t < 2.5 || t > 5.4) g.fillRect(x, y, 8, 8);
   }
 }
-function drawWin() {
-  g.fillStyle = PAL[0];
-  g.fillRect(0, 0, SW, SH);
-  for (let i = 0; i < 8; i++) {
-    g.fillStyle = PAL[BARS[mod(i + Math.floor(G.clock * 8), BARS.length)]];
-    g.fillRect(0, 20 + i * 2, SW, 1);
-  }
-  ctext('ELECTION', 44, 7, 2);
-  ctext('PURCHASED', 64, 7, 2);
-  ctext('YOU ARE NOW MAYOR OF SLEAZEBURG.', 96, 1);
-  ctext('NOTHING WILL CHANGE.', 108, 15);
-  ctext('THE POTHOLES SEND THEIR REGARDS.', 120, 12);
-  if (Math.floor(G.clock * 2) & 1) ctext('PRESS FIRE TO CONTINUE (NOW LEGAL)', 160, 13);
-}
 export function draw() {
   let border = 0;
   if (G.screen === 'boot') {
     drawBoot();
     border = 14;
   } else if (G.screen === 'title') drawTitle();
-  else if (G.screen === 'win') drawWin();
-  else {
+  else if (G.screen === 'win' || G.screen === 'over') {
+    drawEnding(G.screen);
+    border = G.screen === 'win' ? 9 : 0;
+  } else {
     drawWorld();
     if (G.heat > 0 && G.sirenT > 0 && G.sirenT < 0.7) border = Math.floor(G.clock * 2) & 1 ? 2 : 6;
   }
