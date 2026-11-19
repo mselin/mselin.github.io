@@ -126,7 +126,8 @@ export function spawner(dt) {
       hyp(c.x - p.x, c.y - p.y) < (c.dead || !c.ai ? 380 : 470),
   );
   clearClutter(dt, p);
-  G.peds = G.peds.filter((q) => hyp(q.x - p.x, q.y - p.y) < 400);
+  // The cult waits to be found however far away the player is.
+  G.peds = G.peds.filter((q) => q.type === 'cult' || hyp(q.x - p.x, q.y - p.y) < 400);
   spT -= dt;
   if (spT <= 0) {
     spT = 0.35;
@@ -135,7 +136,7 @@ export function spawner(dt) {
   spP -= dt;
   if (spP <= 0) {
     spP = 0.15;
-    if (G.peds.length < 24) spawnPed();
+    if (G.peds.filter((q) => q.type !== 'cult').length < 24) spawnPed();
   }
   spC -= dt;
   if (spC <= 0 && G.screen === 'play') {

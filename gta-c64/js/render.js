@@ -5,7 +5,7 @@ import { R, clamp, hyp, mod } from './util.js';
 import { TOUCH, cx, g, scr } from './screen.js';
 import { ctext, text } from './font.js';
 import { ARW, carSpr, pedSpr } from './sprites.js';
-import { CHOP, JOBPTS, PAINT, waterAt } from './world.js';
+import { CHOP, JOBPTS, PAINT, crossing, waterAt } from './world.js';
 import { mapC } from './worldview.js';
 import { G, P, onScreen, ppos } from './state.js';
 import { npText, radio, radioAudible } from './radio.js';
@@ -192,6 +192,11 @@ function drawWorld() {
     let pr = '';
     if (d.type === 'kill' || d.type === 'wreck') pr = G.job.n + '/' + d.n;
     if (d.type === 'survive') pr = Math.floor(G.job.acc) + '/' + d.n + 'S';
+    if (d.type === 'find') {
+      // Where the player is, in the same avenue-street form as the clue.
+      const at = crossing(ppos().x, ppos().y);
+      pr = at.ave + '-' + at.st;
+    }
     text(d.t.slice(0, 24), 0, VH + 9, 7);
     text(pr, 216, VH + 9, 1);
     text(tm, 280, VH + 9, t < 15 && Math.floor(G.clock * 4) & 1 ? 2 : 1);

@@ -104,6 +104,7 @@ export function updPeds(dt) {
   const pl = ppos();
   for (const p of G.peds.slice()) {
     p.anim += dt * p.spd * 0.15;
+    if (p.type === 'cult') continue; // deep in ceremony: nothing moves them
     if (p.type === 'cop' && G.heat > 0 && G.screen === 'play') {
       const dx = pl.x - p.x,
         dy = pl.y - p.y,

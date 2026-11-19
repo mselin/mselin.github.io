@@ -2,6 +2,8 @@
 // The city map: tile grid, generation, collision queries and the fixed locations. No drawing, so it runs without a browser.
 import {
   BLD,
+  BLK,
+  CULT,
   FOUNT,
   GRASS,
   LOT,
@@ -17,7 +19,7 @@ import {
   WALK,
   WATER,
 } from './config.js';
-import { mulberry } from './util.js';
+import { clamp, mulberry } from './util.js';
 
 export const map = new Uint8Array(MW * MW),
   bid = new Uint16Array(MW * MW),
@@ -62,6 +64,13 @@ export const HOSP = loc(1, 1),
   PAINT = loc(1, 6),
   HALL = loc(2, 5);
 export const JOBPTS = [loc(2, 2), loc(5, 4), loc(3, 7), loc(7, 0), loc(0, 4)];
+/** The nearest crossing to a point, as the city numbers them: avenues from the west, streets from the north, from 1. */
+export const crossing = (x, y) => ({
+  ave: clamp(Math.round((x - 16) / BLK), 0, NB) + 1,
+  st: clamp(Math.round((y - 16) / BLK), 0, NB) + 1,
+});
+/** Where the cult gathers: the middle of the block just south-east of their crossing (a car park, as it happens). */
+export const CULT_SPOT = { x: ((CULT.ave - 1) * PB + 7) * 16, y: ((CULT.st - 1) * PB + 7) * 16 };
 export function genMap() {
   const rnd = mulberry(64064);
   let nb = 1;

@@ -83,6 +83,8 @@ export const SHOPS = [
   'PODCAST HQ',
   'THOUGHTS&PRAYERS',
 ];
+/** The numerology cult: which crossing they meet at (counting avenues from the west and streets from the north, from 1) and how many turn up. */
+export const CULT = { ave: 6, st: 7, members: 7 };
 export const GOAL = 25000,
   HT = [0, 8, 25, 60, 110, 180];
 export const HEATMSG = [
@@ -146,6 +148,14 @@ export const JOBS = [
     time: 130,
     pay: 3000,
     txt: 'BLOW UP 3 CARS. THE INSURANCE LOBBY SENDS REGARDS.',
+  },
+  {
+    // No arrow for this one: the player has to count streets. Timer and reward are in the cult's own numbers.
+    t: 'THE CULT OF 6-7',
+    type: 'find',
+    time: 167,
+    pay: 6700,
+    txt: 'FIND THE NUMEROLOGY CULT. NO ARROW: THEY MEET WHERE AVENUE 6 CROSSES STREET 7. YOUR OWN CROSSING SHOWS NEXT TO THE TIMER.',
   },
   {
     t: 'CONSULTING FEE',
