@@ -94,6 +94,28 @@ export function placePickup(pk) {
   }
   return pk;
 }
+export const CLUTTER_CAP = 30;
+/**
+ * Crashed traffic, wrecks and sunk cars never move again. Left alone they pile up wherever the player lingers,
+ * so each is cleared once it has sat still out of sight for a few seconds, and there is a cap on the total.
+ * Cars the player has driven are left where they were parked.
+ */
+function clearClutter(dt, p) {
+  const keep = (c) => c === P.car || c.parked || c.used || c.ai || (G.job && G.job.car === c);
+  const clutter = [];
+  G.cars = G.cars.filter((c) => {
+    if (keep(c)) return true;
+    c.idle = hyp(c.vx, c.vy) < 2 ? (c.idle || 0) + dt : 0;
+    if (c.idle > 6 && !onScreen(c.x, c.y, 24)) return false;
+    clutter.push(c);
+    return true;
+  });
+  if (clutter.length > CLUTTER_CAP) {
+    clutter.sort((a, b) => hyp(b.x - p.x, b.y - p.y) - hyp(a.x - p.x, a.y - p.y));
+    const drop = new Set(clutter.slice(0, clutter.length - CLUTTER_CAP));
+    G.cars = G.cars.filter((c) => !drop.has(c));
+  }
+}
 export function spawner(dt) {
   const p = ppos();
   G.cars = G.cars.filter(
@@ -103,6 +125,7 @@ export function spawner(dt) {
       (G.job && G.job.car === c) ||
       hyp(c.x - p.x, c.y - p.y) < (c.dead || !c.ai ? 380 : 470),
   );
+  clearClutter(dt, p);
   G.peds = G.peds.filter((q) => hyp(q.x - p.x, q.y - p.y) < 400);
   spT -= dt;
   if (spT <= 0) {

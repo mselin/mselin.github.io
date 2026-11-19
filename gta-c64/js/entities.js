@@ -30,6 +30,8 @@ export function mkCar(kind, x, y, a, col) {
     smk: 0,
     ghost: 0,
     flooded: false,
+    used: false, // the player has driven it
+    idle: 0, // seconds an abandoned car has sat still
     sink: 0, // 0 afloat to 1 on the bottom, once flooded
   };
 }

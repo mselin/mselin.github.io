@@ -4,7 +4,6 @@ import { GOAL, KIND, SW, VH, WPX } from './config.js';
 import { R, clamp, hyp } from './util.js';
 import { HOSP, parkSpots } from './world.js';
 import { engineSound } from './audio.js';
-import { renderMap } from './worldview.js';
 import { G, P, edge, msg, ppos, resetState } from './state.js';
 import { mkCar } from './entities.js';
 import { resetHeat, updHeat } from './heat.js';
@@ -18,13 +17,19 @@ import { radioTick, sidVol } from './radio.js';
 
 let started = false;
 let endT = 0;
+// Drawing is kept out of this module so the whole game can run without a page, as the tests do.
+let redrawMap = () => {};
+/** Register what repaints the map when a new game starts (it wipes skid marks and other decals). */
+export function onMapReset(fn) {
+  redrawMap = fn;
+}
 /** Throw the finished game away: fresh state, a clean map without skid marks, cars and pickups back in place. */
 function resetGame() {
   resetState();
   resetMissions();
   resetHeat();
   resetPeds();
-  renderMap();
+  redrawMap();
   initWorld();
   started = false;
 }

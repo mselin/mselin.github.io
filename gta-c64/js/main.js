@@ -9,7 +9,7 @@ import { mkCar } from './entities.js';
 import { crime } from './heat.js';
 import { passJob, startJob } from './missions.js';
 import { down } from './player.js';
-import { initWorld, update } from './game.js';
+import { initWorld, onMapReset, update } from './game.js';
 import { draw } from './render.js';
 import { initRadio, radio, radioState, silence } from './radio.js';
 import { initInfo } from './info.js';
@@ -17,6 +17,7 @@ import { initInput } from './input.js';
 
 genMap();
 renderMap();
+onMapReset(renderMap);
 initWorld();
 initInput();
 initInfo();

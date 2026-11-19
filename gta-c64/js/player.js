@@ -95,6 +95,7 @@ function enterCar() {
   c.ai = null;
   c.driver = false;
   c.parked = false;
+  c.used = true; // the player's own: it stays where they leave it
   P.car = c;
   sfx.door();
   if (G.musicOn) G.pops.push({ x: 0, y: 0, t: 'RADIO: ' + radio[G.station].name, col: 7, l: 2.5, hud: true });
