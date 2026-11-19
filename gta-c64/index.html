@@ -47,12 +47,12 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 <h2>RADIO</h2>
 <p><button id="bmus"></button><button id="bfx"></button><button id="bst">NEXT STATION</button><button id="bnx">NEXT TUNE</button><button id="bld">PLAY A .SID FILE</button></p>
 <dl id="now"></dl>
-<p class="small">The radio plays on the title screen and while you drive. Tunes are real Commodore 64 music, streamed on demand from the <a href="https://www.hvsc.c64.org/" target="_blank" rel="noopener">High Voltage SID Collection</a> and played by a SID chip emulator in your browser. Emulation is approximate, so some tunes sound different from the real hardware.</p>
+<p class="small">The radio plays on the title screen and while you drive. Tunes are real Commodore 64 music, streamed on demand from the <a href="https://www.hvsc.c64.org/" target="_blank" rel="noopener">High Voltage SID Collection</a> and played in your browser by the same Commodore 64 emulator the HVSC website uses.</p>
 <div id="plist"></div>
 <h2>CREDITS</h2>
 <ul><li>Music: the composers listed above. All tunes remain the property of their authors and publishers.</li>
 <li>Music archive: <a href="https://www.hvsc.c64.org/" target="_blank" rel="noopener">High Voltage SID Collection (HVSC)</a>, which also supplies the title, author and release details shown here.</li>
-<li>SID emulation: <a href="http://hermit.sidrip.com/jsSID.html" target="_blank" rel="noopener">jsSID</a> by Hermit (Mihaly Horvath).</li>
+<li>SID player: <a href="https://github.com/LouDnl/USBSID-Player" target="_blank" rel="noopener">USBSID-Player</a> by LouDnl, with the reSIDfp SID engine. Free software under the GNU General Public License, version 2 or later; its files and licence are in the <a href="usbsid-player/README.md">usbsid-player</a> folder of this page.</li>
 <li>Game, graphics and the built-in "SID FM" tune: made for this site.</li></ul>
 <p><button id="iclose">CLOSE</button></p>
 </div></div>
@@ -514,41 +514,41 @@ function draw(){let border=0;
 
 // ---------- input & loop ----------
 const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'music',KeyF:'fx',KeyL:'sid',KeyN:'next',KeyR:'radio',KeyI:'info',Escape:'esc'};
-function press(k){initAudio();radioInit();if(k==='info'||(k==='esc'&&infoOpen)){infoToggle();return}if(infoOpen)return;if(!K[k])edge[k]=true;K[k]=true;if(k==='music')setMusic(!musicOn);if(k==='fx')setFx(!fxOn);if(k==='sid')sidInput.click();if(k==='next')radioNext();if(k==='radio')radioStation()}
+function press(k){initAudio();radioInit();if(sidEng)sidEng.unlock();if(k==='info'||(k==='esc'&&infoOpen)){infoToggle();return}if(infoOpen)return;if(!K[k])edge[k]=true;K[k]=true;if(k==='music')setMusic(!musicOn);if(k==='fx')setFx(!fxOn);if(k==='sid')sidInput.click();if(k==='next')radioNext();if(k==='radio')radioStation()}
 addEventListener('keydown',e=>{const k=KM[e.code];if(e.ctrlKey||e.metaKey||e.altKey)return;if(infoOpen&&k!=='info'&&k!=='esc')return;if(k){e.preventDefault();if(!e.repeat)press(k)}});
 addEventListener('keyup',e=>{const k=KM[e.code];if(k){e.preventDefault();K[k]=false}});
 addEventListener('blur',()=>{for(const k in K)K[k]=false});
-cv.addEventListener('pointerdown',()=>{cv.focus();initAudio();radioInit();if(state!=='play'&&state!=='down'&&!infoOpen)edge.fire=true});
+cv.addEventListener('pointerdown',()=>{cv.focus();initAudio();radioInit();if(sidEng)sidEng.unlock();if(state!=='play'&&state!=='down'&&!infoOpen)edge.fire=true});
 document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k;const up=e=>{e.preventDefault();K[k]=false;b.classList.remove('on')};
  b.addEventListener('pointerdown',e=>{e.preventDefault();press(k);b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('contextmenu',e=>e.preventDefault())});
-// ---------- radio: built-in tune, SID stations from radio/stations.json (HVSC or local files), own .sid files. jsSID by Hermit, loaded on demand ----------
+// ---------- radio: built-in tune, SID stations from radio/stations.json (HVSC or local files), own .sid files. Tunes are played by USBSID-Player (see sidplayer.js), loaded on demand ----------
 const HVSC='https://www.hvsc.c64.org',HVSC_BASE=HVSC+'/download/C64Music';
 const radio=[{name:'SID FM',tagline:'THE HOUSE BAND. ALL THREE VOICES, ALL THE TIME',builtin:true},{name:'RADIO OFF',tagline:'ENJOY THE ENGINE NOISE'}];
-let sid=null,sidReady=false,sidPlaying=false,sidSub=0,sidLib=null,stI=0,loadSeq=0,radioTried=false,needTune=true,np=null,infoOpen=false,quietT=0,lastOut=0;const sidInput=document.getElementById('sidfile');
+let sidEng=null,engP=null,sidReady=false,sidPlaying=false,sidBusy=false,sidSub=0,sidSongs=1,stI=0,loadSeq=0,radioTried=false,needTune=true,np=null,infoOpen=false;const sidInput=document.getElementById('sidfile');
 try{musicOn=localStorage.getItem('sb64music')==='1'}catch(e){}
-const sidClean=t=>t.replace(/\0/g,'').trim(),fontSafe=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+const fontSafe=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const radioWant=()=>musicOn&&!paused&&(state==='title'||state==='win'||(state==='play'&&!!P.car));
 const radioAudible=()=>{const st=radio[stI];return musicOn&&(st.builtin||(!!st.tracks&&sidReady&&sidPlaying))};
 function npText(){const st=radio[stI];if(st.builtin)return'SLEAZEBURG THEME - THE HOUSE BAND';const t=np;if(!t)return'...';return fontSafe((t.title||'UNTITLED')+' - '+(t.author||'UNKNOWN')+(t.released?' ('+t.released+')':''))}
-function sidVol(){if(sid)sid.setvolume(musicOn&&!paused?.9:0)}
-function sidLoadLib(){return sidLib||(sidLib=new Promise((ok,no)=>{const s=document.createElement('script');s.src='jsSID.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)}))}
-function sidEnsure(){if(sid)return;sid=new jsSID(8192,.0005);sid.setloadcallback(()=>{sidReady=true;sid.setmodel(sid.getprefmodel());sidVol();const t=np;if(t){t.title=t.title||sidClean(sid.gettitle());t.author=t.author||sidClean(sid.getauthor());t.released=t.released||sidClean(sid.getinfo())}
-  if(state==='play'&&radioWant())msg(radio[stI].name+': '+npText());infoRender()})}
-function trackUrl(t){return t.blob?Promise.resolve(t.blob):fetch(t.url).then(r=>{if(!r.ok)throw 0;return r.blob()}).then(b=>b.slice(0,18).arrayBuffer().then(h=>{const d=new Uint8Array(h),m=String.fromCharCode(d[0],d[1],d[2],d[3]);if(m!=='PSID'&&m!=='RSID')throw 0;t.start=Math.max(0,(d[17]||1)-1);return t.blob=URL.createObjectURL(b)}))}
-function playTrack(st,fails){const t=st.tracks[st.i],seq=++loadSeq;sidReady=false;quietT=0;
- trackUrl(t).then(u=>sidLoadLib().then(()=>{if(seq!==loadSeq)return;sidEnsure();np=t;sidSub=t.sub!=null?t.sub:(t.start||0);sid.setendcallback(()=>setTimeout(radioNext,0,true),t.secs);sid.loadstart(u,sidSub);sidPlaying=true}))
+function sidVol(){if(sidEng)sidEng.setVolume(musicOn&&!paused?.9:0)}
+function sidLoadLib(){return engP||(engP=import('./sidplayer.js').then(m=>{sidEng=m;sidVol()}))}
+function trackBytes(t){return t.bytes?Promise.resolve(t.bytes):fetch(t.url).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(b=>{const d=new Uint8Array(b),m=String.fromCharCode(d[0],d[1],d[2],d[3]);if(m!=='PSID'&&m!=='RSID')throw 0;return t.bytes=d})}
+function playTrack(st,fails){const t=st.tracks[st.i],seq=++loadSeq;sidReady=false;sidPlaying=false;
+ trackBytes(t).then(b=>sidLoadLib().then(()=>sidEng.load(b,t.sub!=null?t.sub+1:0))).then(info=>{if(seq!==loadSeq)return;np=t;sidSub=info.song-1;sidSongs=info.songs;t.title=t.title||info.title;t.author=t.author||info.author;t.released=t.released||info.released;sidReady=true;sidVol();
+   if(state==='play'&&radioWant())msg(st.name+': '+npText());infoRender()})
  .catch(()=>{if(seq!==loadSeq)return;if(fails+1<st.tracks.length){advance(st);playTrack(st,fails+1)}else msg(st.name+': DEAD AIR. NO PLAYABLE TUNES FOUND.')})}
 function advance(st){st.i++;if(st.i>=st.tracks.length){st.i=0;if(st.tracks.length>2){const last=st.tracks[st.tracks.length-1];shuffle(st.tracks);if(st.tracks[0]===last)st.tracks.push(st.tracks.shift())}}}
-function silence(){loadSeq++;if(sid&&sidReady&&sidPlaying)sid.pause();sidPlaying=false;sidReady=false;np=null;needTune=true}
+function silence(){loadSeq++;if(sidEng)sidEng.halt();sidPlaying=false;sidReady=false;sidBusy=false;np=null;needTune=true}
 function radioStation(){stI=(stI+1)%radio.length;const st=radio[stI];silence();msg('RADIO: '+st.name+(st.tagline?' - '+st.tagline:'')+(musicOn?'':' (MUSIC IS OFF - PRESS M)'));tone(900,400,.05,'square',.15);infoRender()}
-function radioNext(auto){const st=radio[stI];if(!st.tracks||!sid||!musicOn)return;
- if(st.tracks.length===1){if(!sidReady)return;const n=sid.getsubtunes()||1;sidSub=(sidSub+1)%n;sid.start(sidSub);sidVol();sidPlaying=true;if(n>1&&!auto)msg(st.name+': TUNE '+(sidSub+1)+'/'+n);return}
+function sidStart(){sidPlaying=true;sidBusy=true;const seq=loadSeq;sidEng.play().catch(()=>{if(seq===loadSeq){sidPlaying=false;msg(radio[stI].name+': THAT TUNE WOULD NOT PLAY.');radioNext(true)}}).then(()=>{if(seq===loadSeq)sidBusy=false})}
+function radioNext(auto){const st=radio[stI];if(!st.tracks||!sidEng||!musicOn)return;
+ if(st.tracks.length===1){if(!sidReady||sidBusy)return;sidSub=(sidSub+1)%sidSongs;sidBusy=true;sidPlaying=false;const seq=loadSeq;sidEng.setSong(sidSub+1).then(()=>{if(seq===loadSeq)sidBusy=false});if(sidSongs>1&&!auto)msg(st.name+': TUNE '+(sidSub+1)+'/'+sidSongs);return}
  advance(st);playTrack(st,0)}
 function radioTick(dt){const st=radio[stI],want=radioWant();if(st.builtin&&want)music(dt);
  if(want&&st.tracks&&needTune){needTune=false;playTrack(st,0)}
- if(sid&&sidReady){const w=want&&!!st.tracks;if(w&&!sidPlaying){sid.playcont();sidPlaying=true}else if(!w&&sidPlaying){sid.pause();sidPlaying=false}
-  if(w&&sidPlaying&&st.tracks.length>1){const v=sid.getoutput();quietT=Math.abs(v-lastOut)>.004?0:quietT+dt;lastOut=v;if(quietT>10){quietT=0;radioNext(true)}}}}
+ if(sidEng&&sidReady&&!sidBusy){const w=want&&!!st.tracks;if(w&&!sidPlaying)sidStart();else if(!w&&sidPlaying){sidPlaying=false;sidEng.pause()}
+  else if(w&&np&&sidEng.timeMs()>np.secs*1000)radioNext(true)}}
 function setMusic(on){musicOn=on;try{localStorage.setItem('sb64music',on?'1':'0')}catch(e){}sidVol();if(state==='play')msg(on?'MUSIC ON. RADIO: '+radio[stI].name:'MUSIC OFF.');infoRender()}
 function setFx(on){fxOn=on;if(state==='play')msg(on?'SOUND EFFECTS ON.':'SOUND EFFECTS OFF.');infoRender()}
 function radioInit(){if(radioTried)return;radioTried=true;fetch('radio/stations.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{const add=[];
@@ -562,7 +562,7 @@ function radioInit(){if(radioTried)return;radioTried=true;fetch('radio/stations.
   if(add.length){radio.splice(1,0,...add);if(stI===0){stI=1;silence()}else stI+=add.length;infoRender()}}).catch(()=>{})}
 function sidFile(f){if(!f)return;if(!/\.(sid|psid|dat)$/i.test(f.name)){msg('THE TAPE DECK ONLY PLAYS .SID FILES. STANDARDS, PLEASE.');return}
  let k=radio.findIndex(s=>s.tape);if(k<0){k=radio.length-1;radio.splice(k,0,{name:'TAPE DECK',tagline:'YOUR OWN CASSETTE',tape:true,tracks:[],i:0})}
- radio[k].tracks=[{blob:URL.createObjectURL(f),sub:null,start:0,secs:600,title:'',author:'',released:'',id:0}];radio[k].i=0;stI=k;silence();if(!musicOn)setMusic(true);infoRender()}
+ const tk={bytes:null,sub:null,secs:600,title:'',author:'',released:'',id:0};radio[k].tracks=[tk];radio[k].i=0;f.arrayBuffer().then(b=>{tk.bytes=new Uint8Array(b);stI=radio.findIndex(s=>s.tape);silence();if(!musicOn)setMusic(true);infoRender()})}
 sidInput.addEventListener('change',()=>{sidFile(sidInput.files[0]);sidInput.value=''});
 addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>{e.preventDefault();initAudio();sidFile(e.dataTransfer.files[0])});
 // ---------- information page ----------
@@ -578,7 +578,7 @@ function infoRender(){if(!infoOpen)return;$('bmus').textContent='MUSIC: '+(music
   for(const t of s.tracks.slice().sort((x,y)=>(x.title||'').localeCompare(y.title||''))){const li=el('li');if(t.id)li.appendChild(hvscLink(t,t.title||'Untitled'));else li.appendChild(el('span',t.title||t.url.split('/').pop()));li.appendChild(document.createTextNode((t.author?' by '+t.author:'')+(t.released?' ('+t.released+')':'')));ul.appendChild(li)}pl.appendChild(ul)}}
 function infoToggle(){infoOpen=!infoOpen;$('info').classList.toggle('on',infoOpen);for(const k in K)K[k]=false;if(infoOpen){infoRender();$('iclose').focus()}else cv.focus()}
 $('ibtn').addEventListener('click',()=>{initAudio();radioInit();infoToggle()});$('iclose').addEventListener('click',infoToggle);$('info').addEventListener('click',e=>{if(e.target===$('info'))infoToggle()});
-$('bmus').addEventListener('click',()=>{initAudio();setMusic(!musicOn)});$('bfx').addEventListener('click',()=>setFx(!fxOn));$('bst').addEventListener('click',radioStation);$('bnx').addEventListener('click',()=>radioNext());$('bld').addEventListener('click',()=>sidInput.click());
+$('bmus').addEventListener('click',()=>{initAudio();if(sidEng)sidEng.unlock();setMusic(!musicOn)});$('bfx').addEventListener('click',()=>setFx(!fxOn));$('bst').addEventListener('click',radioStation);$('bnx').addEventListener('click',()=>radioNext());$('bld').addEventListener('click',()=>sidInput.click());
 genMap();renderMap();
 for(const s of parkSpots){const r=R(),c=mkCar(r<.6?KIND.sedan:r<.8?KIND.van:KIND.sports,s.x,s.y,s.a);c.parked=true;cars.push(c)}
 {const c=mkCar(KIND.sedan,HOSP.x+40,HOSP.y,0,14);c.parked=true;cars.push(c)}
