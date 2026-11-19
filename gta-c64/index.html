@@ -33,6 +33,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 <button data-k="down" style="left:70px;bottom:10px">v</button>
 <button data-k="use" style="right:80px;bottom:30px">CAR</button>
 <button data-k="music" style="right:12px;top:12px;height:36px;width:64px">MUSIC</button>
+<button data-k="esc" style="left:54px;top:10px;height:34px;width:64px">TITLE</button>
 <button data-k="radio" style="right:84px;top:12px;height:36px;width:64px">RADIO</button>
 <button data-k="next" style="right:156px;top:12px;height:36px">NEXT</button>
 <button data-k="fire" style="right:12px;bottom:90px">FIRE</button>
@@ -43,7 +44,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 <p>A top-down crime satire in the style of an 8-bit home computer game: 320&times;200 pixels, 16 colours, sprites and three-voice sound. Walk, drive, take jobs from the flashing J markers, dodge the law, and raise $25,000 to buy the election.</p>
 <p class="small">An original game. Every place, business and official in Sleazeburg is made up.</p>
 <h2>CONTROLS</h2>
-<dl><dt>Arrows / WASD</dt><dd>Walk, drive</dd><dt>Space</dt><dd>Fire or punch on foot, horn in a car</dd><dt>E / Enter</dt><dd>Get in or out of a car</dd><dt>M</dt><dd>Music on or off (starts off)</dd><dt>R / N</dt><dd>Next radio station / next tune</dd><dt>F</dt><dd>Sound effects on or off</dd><dt>P</dt><dd>Pause</dd><dt>I / Esc</dt><dd>Open or close this page</dd></dl>
+<dl><dt>Arrows / WASD</dt><dd>Walk, drive</dd><dt>Space</dt><dd>Fire or punch on foot, horn in a car</dd><dt>E / Enter</dt><dd>Get in or out of a car</dd><dt>M</dt><dd>Music on or off (starts off)</dd><dt>R / N</dt><dd>Next radio station / next tune</dd><dt>F</dt><dd>Sound effects on or off</dd><dt>P</dt><dd>Pause</dd><dt>I</dt><dd>Open or close this page</dd><dt>Esc</dt><dd>Back to the title screen, to just listen to the radio. Your game is kept.</dd></dl>
 <h2>RADIO</h2>
 <p><button id="bmus"></button><button id="bfx"></button><button id="bst">NEXT STATION</button><button id="bnx">NEXT TUNE</button><button id="bld">PLAY A .SID FILE</button></p>
 <dl id="now"></dl>
@@ -428,12 +429,13 @@ function updHeat(dt){const p=ppos();let near=false;for(const c of cars)if(c.ai==
  newsT-=dt;if(newsT<=0){newsT=22+R()*15;if(msgT<=0)msg(pick(NEWS))}}
 
 // ---------- update ----------
-function startGame(){state='play';msg('YOU WAKE UP OUTSIDE ST. INVOICE HOSPITAL. BUY THE ELECTION: $'+GOAL+'. FIND A FLASHING "J" FOR JOBS.')}
+let started=false,quitAsk=false;
+function startGame(){state='play';if(started){msg('BACK TO WORK. THE ELECTION WILL NOT BUY ITSELF.');return}started=true;msg('YOU WAKE UP OUTSIDE ST. INVOICE HOSPITAL. BUY THE ELECTION: $'+GOAL+'. FIND A FLASHING "J" FOR JOBS.')}
 function update(dt){time+=dt;radioTick(dt);
  if(state==='boot'){bootT+=dt;if(bootT>6.2||edge.fire||edge.use)state='title';return}
  if(state==='title'){if(edge.fire||edge.use)startGame();return}
  if(state==='win'){if(edge.fire||edge.use)state='play';return}
- if(edge.pause){paused=!paused;sidVol()}if(paused||infoOpen){if(engG)engG.gain.value=0;return}
+ if(edge.pause){paused=!paused;sidVol()}if(paused||infoOpen||quitAsk){if(engG)engG.gain.value=0;return}
  updPlayer(dt);updCars(dt);updPeds(dt);updBullets(dt);updPickups(dt);updHeat(dt);
  if(state==='play')updJob(dt);
  spawner(dt);
@@ -472,6 +474,7 @@ function drawWorld(){camXi=Math.round(camX);camYi=Math.round(camY);
  for(const p of pops)if(p.hud){const w=p.t.length*8;g.fillStyle=PAL[0];g.fillRect((SW-w)/2-4,6,w+8,12);text(p.t,(SW-w)/2,8,p.col)}
  if(big){const w=big.t.length*16;g.fillStyle=PAL[0];g.fillRect(0,58,SW,44);g.fillStyle=PAL[big.col];g.fillRect(0,58,SW,1);g.fillRect(0,101,SW,1);text(big.t,Math.floor((SW-w)/2),64,big.col,2);if(big.sub)ctext(big.sub,88,1)}
  if(paused){g.fillStyle=PAL[0];g.fillRect(100,76,120,24);ctext('PAUSED',84,1)}
+ if(quitAsk){g.fillStyle=PAL[14];g.fillRect(36,62,248,52);g.fillStyle=PAL[6];g.fillRect(40,66,240,44);ctext('RETURN TO TITLE SCREEN?',74,1);ctext(TOUCH?'FIRE = YES    CAR = NO':'Y = YES    N = NO',92,7)}
  // panel
  g.fillStyle=PAL[0];g.fillRect(0,VH,SW,SH-VH);g.fillStyle=PAL[11];g.fillRect(0,VH,SW,1);
  text('$'+String(cash).padStart(6,'0'),0,VH+1,13);text('HEAT',64,VH+1,15);for(let i=0;i<5;i++)text('*',100+i*8,VH+1,i<heat?(Math.floor(time*4)&1?2:7):11);
@@ -513,8 +516,12 @@ function draw(){let border=0;
  cx.drawImage(scr,BX,BY)}
 
 // ---------- input & loop ----------
-const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'music',KeyF:'fx',KeyL:'sid',KeyN:'next',KeyR:'radio',KeyI:'info',Escape:'esc'};
-function press(k){initAudio();radioInit();if(sidEng)sidEng.unlock();if(k==='info'||(k==='esc'&&infoOpen)){infoToggle();return}if(infoOpen)return;if(!K[k])edge[k]=true;K[k]=true;if(k==='music')setMusic(!musicOn);if(k==='fx')setFx(!fxOn);if(k==='sid')sidInput.click();if(k==='next')radioNext();if(k==='radio')radioStation()}
+const TOUCH=matchMedia('(pointer:coarse)').matches;
+const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'music',KeyF:'fx',KeyL:'sid',KeyN:'next',KeyR:'radio',KeyI:'info',Escape:'esc',KeyY:'yes'};
+function press(k){initAudio();radioInit();if(sidEng)sidEng.unlock();if(k==='info'||(k==='esc'&&infoOpen)){infoToggle();return}if(infoOpen)return;
+ if(quitAsk){if(k==='yes'||k==='fire'){quitAsk=false;paused=false;state='title';for(const q in K)K[q]=false;sidVol()}else if(k==='next'||k==='esc'||k==='use')quitAsk=false;return}
+ if(k==='esc'){if(state==='play'){quitAsk=true;for(const q in K)K[q]=false}return}
+ if(!K[k])edge[k]=true;K[k]=true;if(k==='music')setMusic(!musicOn);if(k==='fx')setFx(!fxOn);if(k==='sid')sidInput.click();if(k==='next')radioNext();if(k==='radio')radioStation()}
 addEventListener('keydown',e=>{const k=KM[e.code];if(e.ctrlKey||e.metaKey||e.altKey)return;if(infoOpen&&k!=='info'&&k!=='esc')return;if(k){e.preventDefault();if(!e.repeat)press(k)}});
 addEventListener('keyup',e=>{const k=KM[e.code];if(k){e.preventDefault();K[k]=false}});
 addEventListener('blur',()=>{for(const k in K)K[k]=false});
