@@ -7,9 +7,9 @@ import { engineSound } from './audio.js';
 import { renderMap } from './worldview.js';
 import { G, P, edge, msg, ppos, resetState } from './state.js';
 import { mkCar } from './entities.js';
-import { updHeat } from './heat.js';
+import { resetHeat, updHeat } from './heat.js';
 import { updCars } from './cars.js';
-import { updPeds } from './peds.js';
+import { resetPeds, updPeds } from './peds.js';
 import { respawn, updPlayer } from './player.js';
 import { resetMissions, updJob } from './missions.js';
 import { placePickup, spawner } from './spawner.js';
@@ -22,6 +22,8 @@ let endT = 0;
 function resetGame() {
   resetState();
   resetMissions();
+  resetHeat();
+  resetPeds();
   renderMap();
   initWorld();
   started = false;
@@ -79,6 +81,11 @@ export function update(dt) {
   updPickups(dt);
   updHeat(dt);
   if (G.screen === 'play') updJob(dt);
+  // The election fund can fill from a job or from loose cash; either way that is the game won.
+  if (G.screen === 'play' && G.cash >= GOAL) {
+    G.job = null;
+    G.screen = 'win';
+  }
   spawner(dt);
   if (G.screen === 'down') {
     G.downT -= dt;

@@ -38,6 +38,9 @@ export const wallAt = (x, y) => {
   const t = tileAt(x, y);
   return solidT(t) && !isWater(t);
 };
+/** Whether a person fits at (x, y): the four corners of their footprint are all clear of walls. */
+export const footClear = (x, y) =>
+  !wallAt(x - 3, y - 3) && !wallAt(x + 3, y - 3) && !wallAt(x - 3, y + 3) && !wallAt(x + 3, y + 3);
 /** The closest spot to (x, y) that can be stood on, searching outwards in rings. Null if there is none nearby. */
 export function nearestLand(x, y) {
   for (let r = 0; r <= 200; r += 4) {

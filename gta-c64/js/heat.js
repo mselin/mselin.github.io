@@ -10,6 +10,11 @@ import { down } from './player.js';
 let district = '';
 let newsT = 12;
 let paintCd = 0;
+export function resetHeat() {
+  district = '';
+  newsT = 12;
+  paintCd = 0;
+}
 export function crime(n) {
   G.heatPts = Math.min(230, G.heatPts + n);
   G.heatCool = 0;

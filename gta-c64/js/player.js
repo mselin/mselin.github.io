@@ -2,7 +2,7 @@
 // The player on foot and at the wheel: movement, weapons, getting in and out of cars, dying and getting arrested.
 import { DIRS, JACK, KIND } from './config.js';
 import { hyp, pick } from './util.js';
-import { COPS, HOSP, wallAt, waterAt } from './world.js';
+import { COPS, HOSP, footClear, waterAt } from './world.js';
 import { noise, sfx } from './audio.js';
 import { G, K, P, bigText, edge, msg } from './state.js';
 import { mkPed } from './entities.js';
@@ -109,8 +109,7 @@ function exitCar() {
   P.car = null;
   sfx.door();
 }
-const footHits = (x, y) =>
-  wallAt(x - 3, y - 3) || wallAt(x + 3, y - 3) || wallAt(x - 3, y + 3) || wallAt(x + 3, y + 3);
+const footHits = (x, y) => !footClear(x, y);
 export const WALK_SPEED = 58,
   SWIM_SPEED = 22;
 export function updPlayer(dt) {
@@ -151,8 +150,10 @@ export function updPlayer(dt) {
       dy /= l;
       P.a = Math.atan2(dy, dx);
       const s = (swim ? SWIM_SPEED : WALK_SPEED) * dt;
-      if (!footHits(P.x + dx * s, P.y)) P.x += dx * s;
-      if (!footHits(P.x, P.y + dy * s)) P.y += dy * s;
+      // Someone who has somehow ended up inside a wall may always walk; otherwise they could never leave.
+      const stuck = footHits(P.x, P.y);
+      if (stuck || !footHits(P.x + dx * s, P.y)) P.x += dx * s;
+      if (stuck || !footHits(P.x, P.y + dy * s)) P.y += dy * s;
       P.anim += dt * 9;
     }
     P.cd -= dt;

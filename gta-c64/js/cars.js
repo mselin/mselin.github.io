@@ -2,7 +2,7 @@
 // Car handling, collisions, traffic and police driving, damage and explosions.
 import { BLK, DIRS, GRASS, GRIP, KIND, LOT, NB, PAL, PI, PLAZA, ROAD, WALK, WPX } from './config.js';
 import { R, angDiff, clamp, hyp, mod, pick } from './util.js';
-import { decals, tileAt, wallAt, waterAt } from './world.js';
+import { decals, footClear, tileAt, wallAt, waterAt } from './world.js';
 import { sfx } from './audio.js';
 import { G, P, msg, onScreen, pop, ppos } from './state.js';
 import { mkPed } from './entities.js';
@@ -102,9 +102,12 @@ export function sinkStep(c, dt) {
  * It does not catch fire or blow up from this. A driver is left swimming where it went down.
  */
 export function flood(c) {
-  if (c.flooded || c.dead) return;
+  if (c.flooded) return;
   c.flooded = true;
   c.sink = 0;
+  // Water puts a fire out. A wreck floods and sinks like anything else.
+  c.burn = 0;
+  if (c.hp <= 0) c.hp = 1;
   c.ai = null;
   c.driver = false;
   c.parked = false;
@@ -339,12 +342,22 @@ function copAI(c, dt) {
     }
   }
 }
+/**
+ * Where someone getting out of a car ends up: beside a door if there is room to stand there,
+ * otherwise the nearest clear spot round the car. Null if the car is completely boxed in.
+ */
 export function sidePos(c) {
   for (const s of [1, -1]) {
     const x = c.x - Math.sin(c.a) * 12 * s,
       y = c.y + Math.cos(c.a) * 12 * s;
-    if (!wallAt(x, y)) return { x, y };
+    if (footClear(x, y)) return { x, y };
   }
+  for (let r = 14; r <= 30; r += 4)
+    for (let i = 0; i < 12; i++) {
+      const x = c.x + Math.cos((i / 12) * PI * 2) * r,
+        y = c.y + Math.sin((i / 12) * PI * 2) * r;
+      if (footClear(x, y)) return { x, y };
+    }
   return null;
 }
 function explode(c) {
@@ -367,11 +380,14 @@ function explode(c) {
       s: R() < 0.4 ? 3 : 2,
     });
   }
-  decals.ctx.fillStyle = PAL[0];
-  for (let i = 0; i < 70; i++) {
-    const a = R() * 7,
-      r = R() * 14;
-    decals.ctx.fillRect(Math.floor(c.x + Math.cos(a) * r), Math.floor(c.y + Math.sin(a) * r), 1, 1);
+  // Scorch the ground, unless it went up on the water.
+  if (!waterAt(c.x, c.y)) {
+    decals.ctx.fillStyle = PAL[0];
+    for (let i = 0; i < 70; i++) {
+      const a = R() * 7,
+        r = R() * 14;
+      decals.ctx.fillRect(Math.floor(c.x + Math.cos(a) * r), Math.floor(c.y + Math.sin(a) * r), 1, 1);
+    }
   }
   for (const p of G.peds.slice()) if (hyp(p.x - c.x, p.y - c.y) < 30) killPed(p, false);
   for (const o of G.cars) if (o !== c && !o.dead && hyp(o.x - c.x, o.y - c.y) < 32) o.hp -= 55;
@@ -390,7 +406,7 @@ export function updCars(dt) {
     sinkStep(c, dt);
     if (c.dead) {
       if (hyp(c.vx, c.vy) > 2) carPhys(c, 0, 0, dt);
-      if (R() < dt * 4)
+      if (!c.flooded && R() < dt * 4)
         G.parts.push({ x: c.x, y: c.y, vx: (R() - 0.5) * 8, vy: -14, l: 1, col: R() < 0.5 ? 11 : 12, s: 2 });
       continue;
     }
@@ -401,7 +417,7 @@ export function updCars(dt) {
     else {
       c.vx = c.vy = 0;
     }
-    if (c.hp < 45) {
+    if (c.hp < 45 && !(c.flooded && c.sink >= 0.3)) {
       c.smk -= dt;
       if (c.smk <= 0) {
         c.smk = 0.08;
