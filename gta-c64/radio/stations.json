@@ -1,0 +1,24 @@
+{
+  "stations": [
+    {
+      "name": "HVSC FM",
+      "tagline": "CLASSICS YOUR PARENTS CALLED NOISE",
+      "tracks": []
+    },
+    {
+      "name": "8580 GOLD",
+      "tagline": "SMOOTH FILTERS FOR ROUGH NEIGHBOURHOODS",
+      "tracks": []
+    },
+    {
+      "name": "RADIO 6581",
+      "tagline": "ALL GRIT, NO TREBLE",
+      "tracks": []
+    },
+    {
+      "name": "DEMOSCENE AM",
+      "tagline": "GREETINGS TO EVERYONE WE FORGOT",
+      "tracks": []
+    }
+  ]
+}
