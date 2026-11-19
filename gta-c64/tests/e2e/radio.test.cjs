@@ -118,6 +118,8 @@ test('a .sid file from disk plays on the tape deck with its own credits', async 
 test('the information page credits the music and links each tune to HVSC', async () => {
   await game.press('KeyI');
   await game.until((s) => s.G.infoOpen);
+  // The playlist arrives a moment after the first key press; the page fills in when it does.
+  await game.page.waitForFunction(() => document.querySelectorAll('#plist a').length > 0);
   const info = await game.page.evaluate(() => ({
     text: document.querySelector('#ibox').innerText,
     tuneLinks: [...document.querySelectorAll('#plist a')].map((a) => a.href),
