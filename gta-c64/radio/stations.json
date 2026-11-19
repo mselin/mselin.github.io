@@ -15,7 +15,8 @@
         {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Thing_on_a_Spring.sid", "id": 127758, "title": "Thing on a Spring", "author": "Rob Hubbard", "released": "1985 Gremlin Graphics", "subtune": 1, "seconds": 218},
         {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Rasputin.sid", "id": 131443, "title": "Rasputin", "author": "Rob Hubbard", "released": "1985 Firebird", "subtune": 1, "seconds": 307},
         {"hvsc": "/MUSICIANS/H/Hubbard_Rob/ACE_II.sid", "id": 113530, "title": "ACE II", "author": "Rob Hubbard", "released": "1987 Cascade Games", "subtune": 1, "seconds": 313},
-        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Nemesis_the_Warlock.sid", "id": 130260, "title": "Nemesis the Warlock", "author": "Rob Hubbard", "released": "1987 Martech", "subtune": 1, "seconds": 412}
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Nemesis_the_Warlock.sid", "id": 130260, "title": "Nemesis the Warlock", "author": "Rob Hubbard", "released": "1987 Martech", "subtune": 1, "seconds": 412},
+        {"hvsc": "/MUSICIANS/H/Hubbard_Rob/Skate_or_Die_intro.sid", "id": 139169, "title": "Skate or Die (intro)", "author": "Rob Hubbard", "released": "1987 Electronic Arts", "subtune": 1, "seconds": 243}
       ]
     },
     {
@@ -53,7 +54,11 @@
         {"hvsc": "/MUSICIANS/D/Dunn_Jonathan/Ocean_Loader_5.sid", "id": 119933, "title": "Ocean Loader 5", "author": "Jonathan Dunn", "released": "1988 Ocean", "subtune": 1, "seconds": 191},
         {"hvsc": "/MUSICIANS/C/Crabtree_Ian/Outrun.sid", "id": 151422, "title": "Outrun", "author": "Ian W. Crabtree", "released": "1988 Archangel Developments", "subtune": 1, "seconds": 171},
         {"hvsc": "/MUSICIANS/S/Simon_Laszlo/Ghosts_n_Goblins.sid", "id": 128878, "title": "Ghosts 'n' Goblins", "author": "László Simon (Roy)", "released": "1991 Replay", "subtune": 1, "seconds": 158},
-        {"hvsc": "/MUSICIANS/D/Daglish_Ben/Last_Ninja.sid", "id": 140487, "title": "The Last Ninja", "author": "Ben Daglish & Anthony Lees", "released": "1987 System 3", "subtune": 3, "seconds": 261}
+        {"hvsc": "/MUSICIANS/D/Daglish_Ben/Last_Ninja.sid", "id": 140487, "title": "The Last Ninja", "author": "Ben Daglish & Anthony Lees", "released": "1987 System 3", "subtune": 3, "seconds": 261},
+        {"hvsc": "/MUSICIANS/D/Daglish_Ben/DeathWish_III.sid", "id": 69589, "title": "DeathWish III", "author": "Ben Daglish", "released": "1987 Gremlin Graphics", "subtune": 1, "seconds": 178},
+        {"hvsc": "/MUSICIANS/W/Whittaker_David/Speedball.sid", "id": 125914, "title": "Speedball", "author": "David Whittaker", "released": "1989 Image Works", "subtune": 1, "seconds": 150},
+        {"hvsc": "/MUSICIANS/M/Mad_Donne_Marcel/Scorpion.sid", "id": 62961, "title": "Scorpion", "author": "Marcel Donné (Mad)", "released": "1988 Rack-It", "subtune": 1, "seconds": 190},
+        {"hvsc": "/MUSICIANS/G/Gray_Fred/Batman_the_Caped_Crusader.sid", "id": 116332, "title": "Batman, the Caped Crusader", "author": "Fred Gray", "released": "1988 Ocean", "subtune": 4, "seconds": 199}
       ]
     }
   ]
