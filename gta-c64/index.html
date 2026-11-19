@@ -12,12 +12,14 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 @media (pointer:coarse){#pad{display:block}}
 </style></head><body>
 <div id="wrap"><canvas id="c" width="384" height="272" tabindex="0"></canvas></div>
+<input id="sidfile" type="file" accept=".sid,.psid,.dat" style="display:none">
 <div id="pad">
 <button data-k="left" style="left:10px;bottom:70px">&lt;</button>
 <button data-k="right" style="left:130px;bottom:70px">&gt;</button>
 <button data-k="up" style="left:70px;bottom:130px">^</button>
 <button data-k="down" style="left:70px;bottom:10px">v</button>
 <button data-k="use" style="right:80px;bottom:30px">CAR</button>
+<button data-k="sid" style="right:12px;top:12px;height:36px">SID</button>
 <button data-k="fire" style="right:12px;bottom:90px">FIRE</button>
 </div>
 <script>
@@ -164,7 +166,7 @@ const sfx={shot(){noise(.09,.5,5000);tone(900,150,.09,'square',.2)},punch(){nois
 const BASS=[45,0,45,57,0,45,0,57,41,0,41,53,0,41,0,53,43,0,43,55,0,43,0,55,40,0,40,52,0,40,47,52];
 const LEAD=[69,72,76,72,69,72,76,81,65,69,72,69,65,69,72,77,67,71,74,71,67,71,74,79,64,67,71,67,76,74,71,67];
 const mf=n=>440*Math.pow(2,(n-69)/12);let mT=0,mS=0;
-function music(dt){mT-=dt;if(mT>0)return;mT+=.14;if(mT<0)mT=.14;const s=mS++%32;if(BASS[s])tone(mf(BASS[s]),0,.13,'triangle',.4);tone(mf(LEAD[s]),0,.1,'square',.09);if(s%4===0)tone(110,40,.08,'sine',.5);if(s%8===4)noise(.07,.25,6000);else if(s%2)noise(.02,.08,9000)}
+function music(dt){if(sidOn)return;mT-=dt;if(mT>0)return;mT+=.14;if(mT<0)mT=.14;const s=mS++%32;if(BASS[s])tone(mf(BASS[s]),0,.13,'triangle',.4);tone(mf(LEAD[s]),0,.1,'square',.09);if(s%4===0)tone(110,40,.08,'sine',.5);if(s%8===4)noise(.07,.25,6000);else if(s%2)noise(.02,.08,9000)}
 
 // ---------- state ----------
 let state='boot',bootT=0,time=0,paused=false,won=false;
@@ -397,7 +399,7 @@ function update(dt){time+=dt;
  if(state==='boot'){bootT+=dt;if(bootT>6.2||edge.fire||edge.use)state='title';return}
  if(state==='title'){music(dt);if(edge.fire||edge.use)startGame();return}
  if(state==='win'){music(dt);if(edge.fire||edge.use)state='play';return}
- if(edge.pause)paused=!paused;if(paused){if(engG)engG.gain.value=0;return}
+ if(edge.pause){paused=!paused;sidVol()}if(paused){if(engG)engG.gain.value=0;return}
  updPlayer(dt);updCars(dt);updPeds(dt);updBullets(dt);updPickups(dt);updHeat(dt);
  if(state==='play')updJob(dt);
  spawner(dt);
@@ -457,8 +459,8 @@ function drawTitle(){g.fillStyle=PAL[0];g.fillRect(0,0,SW,SH);
  for(let i=0;i<6;i++){g.fillStyle=PAL[BARS[mod(i+Math.floor(time*6),BARS.length)]];g.fillRect(0,12+i*2,SW,1);g.fillRect(0,68+i*2,SW,1)}
  g.drawImage(logoC,40,30);text('64',264,58,7);
  ctext('A TOTALLY ORIGINAL CRIME SATIRE',86,15);ctext('8 BITS. 16 COLOURS. 0 SCRUPLES.',96,12);
- text('ARROWS / WASD   WALK - DRIVE',48,116,3);text('SPACE           FIRE - HORN',48,126,3);text('E / ENTER       "BORROW" CAR',48,136,3);text('P PAUSE         M MUTE',48,146,3);
- if(Math.floor(time*2)&1)ctext('PRESS FIRE TO COMMIT CRIMES',164,1);
+ text('ARROWS / WASD   WALK - DRIVE',48,116,3);text('SPACE           FIRE - HORN',48,126,3);text('E / ENTER       "BORROW" CAR',48,136,3);text('P PAUSE         M MUTE',48,146,3);text('L LOAD .SID     N NEXT TUNE',48,156,14);
+ if(Math.floor(time*2)&1)ctext('PRESS FIRE TO COMMIT CRIMES',172,1);
  const off=Math.floor(time*60)%(SCROLL.length*8);text(SCROLL,-off,188,13);if(off>SCROLL.length*8-SW)text(SCROLL,SCROLL.length*8-off,188,13)}
 function drawBoot(){g.fillStyle=PAL[6];g.fillRect(0,0,SW,SH);const t=bootT,c=14;
  text('    **** SLEAZEBURG 64 BASIC V2 ****',0,8,c);text(' 64K RAM SYSTEM  38911 MORAL BYTES FREE',0,24,c);
@@ -475,14 +477,26 @@ function draw(){let border=0;
  cx.drawImage(scr,BX,BY)}
 
 // ---------- input & loop ----------
-const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'mute'};
-function press(k){if(!K[k])edge[k]=true;K[k]=true;initAudio();if(k==='mute'){muted=!muted;if(master)master.gain.value=muted?0:.22}}
+const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'mute',KeyL:'sid',KeyN:'next'};
+function press(k){if(!K[k])edge[k]=true;K[k]=true;initAudio();if(k==='mute'){muted=!muted;if(master)master.gain.value=muted?0:.22;sidVol()}if(k==='sid')sidInput.click();if(k==='next')sidNext();sidAuto()}
 addEventListener('keydown',e=>{const k=KM[e.code];if(k){e.preventDefault();if(!e.repeat)press(k)}});
 addEventListener('keyup',e=>{const k=KM[e.code];if(k){e.preventDefault();K[k]=false}});
 addEventListener('blur',()=>{for(const k in K)K[k]=false});
-cv.addEventListener('pointerdown',()=>{cv.focus();initAudio();if(state!=='play'&&state!=='down')edge.fire=true});
+cv.addEventListener('pointerdown',()=>{cv.focus();initAudio();sidAuto();if(state!=='play'&&state!=='down')edge.fire=true});
 document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k;const up=e=>{e.preventDefault();K[k]=false;b.classList.remove('on')};
  b.addEventListener('pointerdown',e=>{e.preventDefault();press(k);b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('contextmenu',e=>e.preventDefault())});
+// ---------- SID file player (jsSID by Hermit, loaded on demand) ----------
+let sid=null,sidOn=false,sidSub=0,sidTried=false,sidLib=null;const sidInput=document.getElementById('sidfile');
+function sidVol(){if(sid)sid.setvolume(muted||paused?0:.9)}
+function sidLoadLib(){return sidLib||(sidLib=new Promise((ok,no)=>{const s=document.createElement('script');s.src='jsSID.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)}))}
+function sidPlay(url,quiet){sidLoadLib().then(()=>{try{if(!sid){sid=new jsSID(8192,.0005);sid.setloadcallback(()=>{sidOn=true;sid.setmodel(sid.getprefmodel());sidVol();const cl=t=>t.replace(/\0/g,'').trim();msg('SID FM NOW PLAYING: '+(cl(sid.gettitle())||'UNTITLED')+' - '+(cl(sid.getauthor())||'UNKNOWN')+' ('+sid.getsubtunes()+' TUNES, N = NEXT)')})}
+  sidSub=0;sid.loadstart(url,0)}catch(e){if(!quiet)msg('SID FM: THAT FILE WOULD NOT PLAY.')}},()=>{if(!quiet)msg('SID FM: PLAYER NOT FOUND.')})}
+function sidFile(f){if(!f)return;if(!/\.(sid|psid|dat)$/i.test(f.name)){msg('SID FM ONLY PLAYS .SID FILES. STANDARDS, PLEASE.');return}sidPlay(URL.createObjectURL(f))}
+function sidNext(){if(!sid||!sidOn)return;const n=sid.getsubtunes()||1;sidSub=(sidSub+1)%n;sid.start(sidSub);sidVol();msg('SID FM: TUNE '+(sidSub+1)+'/'+n)}
+function sidAuto(){if(sidTried)return;sidTried=true;const q=new URLSearchParams(location.search).get('sid'),name=q&&/^[\w.-]+\.sid$/i.test(q)?q:'music.sid';
+ fetch(name).then(r=>{if(!r.ok)throw 0;return r.blob()}).then(b=>b.slice(0,4).text().then(m=>{if(m==='PSID'||m==='RSID')sidPlay(URL.createObjectURL(b),true)})).catch(()=>{})}
+sidInput.addEventListener('change',()=>{sidFile(sidInput.files[0]);sidInput.value=''});
+addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>{e.preventDefault();sidFile(e.dataTransfer.files[0])});
 genMap();renderMap();
 for(const s of parkSpots){const r=R(),c=mkCar(r<.6?KIND.sedan:r<.8?KIND.van:KIND.sports,s.x,s.y,s.a);c.parked=true;cars.push(c)}
 {const c=mkCar(KIND.sedan,HOSP.x+40,HOSP.y,0,14);c.parked=true;cars.push(c)}
