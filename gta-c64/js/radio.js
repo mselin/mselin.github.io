@@ -42,10 +42,13 @@ export function sidVol() {
 function sidLoadLib() {
   return (
     engP ||
-    (engP = import('../sidplayer.js').then((m) => {
-      G.sidPlayer = m;
-      sidVol();
-    }))
+    (engP = import('../sidplayer.js').then((m) =>
+      // ready() rejects where the emulator cannot run at all, for example with WebAssembly switched off.
+      m.ready().then(() => {
+        G.sidPlayer = m;
+        sidVol();
+      }),
+    ))
   );
 }
 // A tune that has not arrived in this long is skipped, so a stalled download cannot leave the radio tuning for ever.
@@ -53,6 +56,15 @@ const FETCH_TIMEOUT_MS = 15000;
 // After this many tunes in a row fail to start, the browser evidently cannot play them at all.
 const MAX_PLAY_FAILURES = 3;
 let playFails = 0;
+const GAVE_UP = Symbol('gave up');
+/** Stop trying SID stations and go back to the built-in tune, saying why. */
+function giveUp() {
+  playFails = 0;
+  G.station = 0;
+  silence();
+  msg('RADIO: THIS BROWSER CANNOT PLAY SID TUNES. BACK TO THE HOUSE BAND.');
+  radioListener();
+}
 function trackBytes(t) {
   return t.bytes
     ? Promise.resolve(t.bytes)
@@ -74,10 +86,18 @@ function playTrack(st, fails) {
   sidReady = false;
   sidPlaying = false;
   sidBusy = false;
-  trackBytes(t)
-    .then((b) => sidLoadLib().then(() => G.sidPlayer.load(b, t.sub != null ? t.sub + 1 : 0)))
+  // The player comes first: if this browser cannot run it, there is no point downloading any tunes.
+  sidLoadLib()
+    .then(
+      () => trackBytes(t),
+      () => {
+        if (seq === loadSeq) giveUp();
+        return GAVE_UP;
+      },
+    )
+    .then((b) => (b === GAVE_UP ? b : G.sidPlayer.load(b, t.sub != null ? t.sub + 1 : 0)))
     .then((info) => {
-      if (seq !== loadSeq) return;
+      if (seq !== loadSeq || info === GAVE_UP) return;
       G.nowPlaying = t;
       sidSub = info.song - 1;
       sidSongs = info.songs;
@@ -143,12 +163,8 @@ function sidStart() {
       if (seq !== loadSeq) return;
       sidPlaying = false;
       if (++playFails >= MAX_PLAY_FAILURES) {
-        // Give up on SID stations rather than work through the whole playlist failing each one.
-        playFails = 0;
-        G.station = 0;
-        silence();
-        msg('RADIO: THIS BROWSER CANNOT PLAY SID TUNES. BACK TO THE HOUSE BAND.');
-        radioListener();
+        // Rather than work through the whole playlist failing each one.
+        giveUp();
         return;
       }
       msg(radio[G.station].name + ': THAT TUNE WOULD NOT PLAY.');
@@ -176,6 +192,20 @@ export function radioNext(auto) {
   advance(st);
   playTrack(st, 0);
 }
+let tendT = 0;
+/** Once a second, let the SID player check whether the device is keeping up, and pass on what it says. */
+function tendPlayer(dt) {
+  tendT += dt;
+  if (tendT < 1) return;
+  tendT = 0;
+  const verdict = G.sidPlayer.tend();
+  if (verdict === 'eased') msg('RADIO: SLOW GOING ON THIS DEVICE. SID PLAYER SWITCHED TO ECONOMY MODE.');
+  else if (verdict === 'struggling')
+    msg(
+      'RADIO: THIS DEVICE CANNOT KEEP UP WITH THE SID PLAYER. IF YOUR BROWSER HAS JIT SWITCHED OFF, ALLOW IT FOR THIS SITE.',
+    );
+  if (verdict !== 'ok') radioListener();
+}
 export function radioTick(dt) {
   const st = radio[G.station],
     want = radioWant();
@@ -191,6 +221,7 @@ export function radioTick(dt) {
       sidPlaying = false;
       G.sidPlayer.pause();
     } else if (w && G.nowPlaying && G.sidPlayer.timeMs() > G.nowPlaying.secs * 1000) radioNext(true);
+    else if (w) tendPlayer(dt);
   }
 }
 export function setMusic(on) {
@@ -294,6 +325,7 @@ export function radioState() {
     songs: sidSongs,
     audible: radioAudible(),
     timeMs: G.sidPlayer ? G.sidPlayer.timeMs() : 0,
+    health: G.sidPlayer ? G.sidPlayer.health() : null,
     level: G.sidPlayer ? G.sidPlayer.level() : 0,
   };
 }

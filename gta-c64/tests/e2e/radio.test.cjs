@@ -177,6 +177,8 @@ test('a browser that cannot start any tune falls back to the built-in station in
       unlock() {},
       timeMs: () => 0,
       level: () => 0,
+      tend: () => 'ok',
+      health: () => null,
     };
   });
   await game.press('KeyN');
@@ -186,4 +188,37 @@ test('a browser that cannot start any tune falls back to the built-in station in
   assert.match(await game.read((s) => s.G.msgTxt), /CANNOT PLAY SID TUNES/);
   await game.wait(1000);
   assert.equal(await game.page.evaluate(() => window.playAttempts), 3, 'no further attempts');
+});
+
+test('a browser without WebAssembly is told so at once, and no tunes are downloaded', async () => {
+  await game.close();
+  // V8's jitless mode switches WebAssembly off altogether in this Chromium.
+  game = await openGame({ browserArgs: ['--js-flags=--jitless'] });
+  assert.equal(await game.page.evaluate(() => typeof WebAssembly), 'undefined');
+  await game.press('Space');
+  await game.until((s) => s.G.screen === 'title');
+  await game.press('KeyM');
+  await game.until((s) => /CANNOT PLAY SID TUNES/.test(s.G.msgTxt), 20000);
+  assert.equal((await radio()).station, 'SID FM');
+  assert.deepEqual(game.hvscRequests, []);
+  // The emulator's loader logs its own failure to the console; that is expected here.
+  game.errors.length = 0;
+});
+
+test('a device too slow for the emulator gets economy mode, then an explanation', async () => {
+  await game.press('KeyM');
+  await game.until((s) => s.radioState().playing && !s.radioState().busy, 15000);
+  assert.equal((await radio()).health.economy, false);
+  // Make this machine forty times slower, far past what any setting can rescue.
+  const cdp = await game.page.context().newCDPSession(game.page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 40 });
+  await game.until((s) => s.radioState().health.economy, 60000);
+  await game.until((s) => s.radioState().health.struggling, 60000);
+  assert.match(await game.read((s) => s.G.msgTxt), /CANNOT KEEP UP/);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+  assert.equal(
+    (await radio()).station,
+    stations.stations[0].name,
+    "it keeps playing; the choice is the listener's",
+  );
 });
