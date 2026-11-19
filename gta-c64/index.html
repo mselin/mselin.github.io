@@ -37,6 +37,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 <button data-k="radio" style="right:84px;top:12px;height:36px;width:64px">RADIO</button>
 <button data-k="next" style="right:156px;top:12px;height:36px">NEXT</button>
 <button data-k="fire" style="right:12px;bottom:90px">FIRE</button>
+<button data-k="hb" style="right:80px;bottom:100px">SKID</button>
 </div>
 <button id="ibtn" aria-label="Game information" title="Game information (I)">i</button>
 <div id="info" role="dialog" aria-modal="true" aria-labelledby="ih"><div id="ibox">
@@ -44,7 +45,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 <p>A top-down crime satire in the style of an 8-bit home computer game: 320&times;200 pixels, 16 colours, sprites and three-voice sound. Walk, drive, take jobs from the flashing J markers, dodge the law, and raise $25,000 to buy the election.</p>
 <p class="small">An original game. Every place, business and official in Sleazeburg is made up.</p>
 <h2>CONTROLS</h2>
-<dl><dt>Arrows / WASD</dt><dd>Walk, drive</dd><dt>Space</dt><dd>Fire or punch on foot, horn in a car</dd><dt>E / Enter</dt><dd>Get in or out of a car</dd><dt>M</dt><dd>Music on or off (starts off)</dd><dt>R / N</dt><dd>Next radio station / next tune</dd><dt>F</dt><dd>Sound effects on or off</dd><dt>P</dt><dd>Pause</dd><dt>I</dt><dd>Open or close this page</dd><dt>Esc</dt><dd>Back to the title screen, to just listen to the radio. Your game is kept.</dd></dl>
+<dl><dt>Arrows / WASD</dt><dd>Walk, drive</dd><dt>Space</dt><dd>Fire or punch on foot, horn in a car</dd><dt>X / Shift</dt><dd>Handbrake, for sliding round corners</dd><dt>E / Enter</dt><dd>Get in or out of a car</dd><dt>M</dt><dd>Music on or off (starts off)</dd><dt>R / N</dt><dd>Next radio station / next tune</dd><dt>F</dt><dd>Sound effects on or off</dd><dt>P</dt><dd>Pause</dd><dt>I</dt><dd>Open or close this page</dd><dt>Esc</dt><dd>Back to the title screen, to just listen to the radio. Your game is kept.</dd></dl>
 <h2>RADIO</h2>
 <p><button id="bmus"></button><button id="bfx"></button><button id="bst">NEXT STATION</button><button id="bnx">NEXT TUNE</button><button id="bld">PLAY A .SID FILE</button></p>
 <dl id="now"></dl>
@@ -237,14 +238,28 @@ function mkPed(x,y,type){const d=pick(DIRS);return{x,y,dx:d[0],dy:d[1],type,spd:
 const DIRS=[[1,0],[0,1],[-1,0],[0,-1]];
 function carHits(c,x,y){const h=c.kind.L/2-4,cs=Math.cos(c.a),sn=Math.sin(c.a);for(let t=-1;t<=1;t++){const px=x+cs*h*t,py=y+sn*h*t;if(solidAt(px-4,py-4)||solidAt(px+4,py-4)||solidAt(px-4,py+4)||solidAt(px+4,py+4))return true}return false}
 function impact(c,spd){if(spd>55){c.hp-=(spd-55)*.14;if(onScreen(c.x,c.y,10)){sfx.crash(spd/300);for(let i=0;i<4;i++)parts.push({x:c.x,y:c.y,vx:(R()-.5)*80,vy:(R()-.5)*80,l:.3,col:7})}}}
-function carPhys(c,thr,steer,dt){const k=c.kind,oa=c.a;let fx=Math.cos(c.a),fy=Math.sin(c.a),fwd=c.vx*fx+c.vy*fy,lat=-c.vx*fy+c.vy*fx;
- if(thr>0)fwd+=k.acc*thr*dt;else if(thr<0)fwd-=(fwd>5?k.acc*2.2:k.acc*.6)*-thr*dt;
- fwd-=fwd*.5*dt;if(!thr)fwd-=Math.sign(fwd)*Math.min(Math.abs(fwd),45*dt);
- const mx=k.max*(c.hp<40?.7:1);fwd=clamp(fwd,-mx*.4,mx);lat*=Math.max(0,1-7*dt);
- c.a+=steer*3*clamp(fwd/55,-1,1)*dt;
+const GRIP={sedan:450,sports:490,van:370,taxi:450,police:510,limo:350};
+function skid(c,on){const h=c.kind.L/2-4,w=c.kind.W/2-2,cs=Math.cos(c.a),sn=Math.sin(c.a),bx=c.x-cs*h,by=c.y-sn*h,p=[bx-sn*w,by+cs*w,bx+sn*w,by-cs*w];
+ if(on&&c.sk){for(let i=0;i<4;i+=2){const x0=c.sk[i],y0=c.sk[i+1],x1=p[i],y1=p[i+1],n=Math.max(1,Math.ceil(hyp(x1-x0,y1-y0)));if(n>12)continue;
+   for(let q=1;q<=n;q++){const x=Math.floor(x0+(x1-x0)*q/n),y=Math.floor(y0+(y1-y0)*q/n),t=tileAt(x,y);if(t===ROAD||t===LOT)mctx.fillStyle=PAL[0];else if(t===WALK||t===PLAZA)mctx.fillStyle=PAL[12];else if(t===GRASS)mctx.fillStyle=PAL[9];else continue;mctx.fillRect(x,y,1,1)}}
+  if(R()<.25&&onScreen(c.x,c.y,10))parts.push({x:bx+(R()-.5)*6,y:by+(R()-.5)*6,vx:(R()-.5)*14,vy:(R()-.5)*14-6,l:.4,col:R()<.5?15:12,s:2})}
+ c.sk=on?p:null}
+// Heading turns first, then the velocity is split into along and across the car: whatever sideways speed the tyres cannot scrub off is a slide.
+function carPhys(c,thr,steer,dt,hb){const k=c.kind,oa=c.a;let fx=Math.cos(c.a),fy=Math.sin(c.a);const f0=c.vx*fx+c.vy*fy;
+ c.a+=steer*3*clamp(f0/55,-1,1)*(hb?1.3:1)*dt;
  const emb=carHits(c,c.x,c.y);
- if(c.a!==oa&&!emb){const a2=c.a;if(carHits(c,c.x,c.y))c.a=oa;else c.a=a2}
- fx=Math.cos(c.a);fy=Math.sin(c.a);c.vx=fx*fwd-fy*lat;c.vy=fy*fwd+fx*lat;
+ if(c.a!==oa&&!emb&&carHits(c,c.x,c.y))c.a=oa;
+ fx=Math.cos(c.a);fy=Math.sin(c.a);let fwd=c.vx*fx+c.vy*fy,lat=-c.vx*fy+c.vy*fx;
+ const braking=thr<0&&fwd>5,spin=thr>0&&fwd<45&&fwd>-5&&k.acc>150;
+ if(thr>0)fwd+=k.acc*thr*dt;else if(thr<0)fwd-=(fwd>5?k.acc*2.2:k.acc*.6)*-thr*dt;
+ if(hb)fwd-=Math.sign(fwd)*Math.min(Math.abs(fwd),k.acc*1.2*dt);
+ fwd-=fwd*.5*dt;if(!thr)fwd-=Math.sign(fwd)*Math.min(Math.abs(fwd),45*dt);
+ const mx=k.max*(c.hp<40?.7:1);fwd=clamp(fwd,-mx*.4,mx);
+ let grip=GRIP[k.n]*(hb?.28:braking?.6:1)*(c.hp<40?.85:1);if(tileAt(c.x,c.y)===GRASS)grip*=.55;
+ lat-=Math.sign(lat)*Math.min(Math.abs(lat),grip*dt);lat*=Math.max(0,1-1.2*dt);
+ c.slide=Math.abs(lat);
+ skid(c,c.slide>26||(braking&&fwd>75)||(hb&&Math.abs(fwd)>30)||spin);
+ c.vx=fx*fwd-fy*lat;c.vy=fy*fwd+fx*lat;
  const nx=c.x+c.vx*dt;if(!emb&&carHits(c,nx,c.y)){impact(c,Math.abs(c.vx));c.vx*=-.3}else c.x=nx;
  const ny=c.y+c.vy*dt;if(!emb&&carHits(c,c.x,ny)){impact(c,Math.abs(c.vy));c.vy*=-.3}else c.y=ny;
  c.x=clamp(c.x,8,WPX-8);c.y=clamp(c.y,8,WPX-8)}
@@ -345,7 +360,7 @@ function exitCar(){const c=P.car;if(hyp(c.vx,c.vy)>45)return;const s=sidePos(c);
 function scare(x,y,r,t){for(const q of peds)if(q.type!=='cop'&&hyp(q.x-x,q.y-y)<r){q.flee=t;q.fx=x;q.fy=y}}
 const footHits=(x,y)=>solidAt(x-3,y-3)||solidAt(x+3,y-3)||solidAt(x-3,y+3)||solidAt(x+3,y+3);
 function updPlayer(dt){if(state!=='play')return;P.hitT-=dt;const c=P.car;
- if(c){carPhys(c,(K.up?1:0)-(K.down?1:0),(K.right?1:0)-(K.left?1:0),dt);P.x=c.x;P.y=c.y;P.a=c.a;
+ if(c){carPhys(c,(K.up?1:0)-(K.down?1:0),(K.right?1:0)-(K.left?1:0),dt,!!K.hb);if(c.sk){skidT-=dt;if(skidT<=0){skidT=.08;noise(.09,Math.min(.2,.06+c.slide/600),2600)}}P.x=c.x;P.y=c.y;P.a=c.a;
   if(edge.fire){sfx.horn();scare(c.x,c.y,60,1.5)}if(edge.use)exitCar();
   if(c.burn>0&&!c.warned){c.warned=true;msg('YOUR CAR IS ON FIRE. THIS IS FINE.')}
  }else{let dx=(K.right?1:0)-(K.left?1:0),dy=(K.down?1:0)-(K.up?1:0);
@@ -429,7 +444,7 @@ function updHeat(dt){const p=ppos();let near=false;for(const c of cars)if(c.ai==
  newsT-=dt;if(newsT<=0){newsT=22+R()*15;if(msgT<=0)msg(pick(NEWS))}}
 
 // ---------- update ----------
-let started=false,quitAsk=false;
+let started=false,quitAsk=false,skidT=0;
 function startGame(){state='play';if(started){msg('BACK TO WORK. THE ELECTION WILL NOT BUY ITSELF.');return}started=true;msg('YOU WAKE UP OUTSIDE ST. INVOICE HOSPITAL. BUY THE ELECTION: $'+GOAL+'. FIND A FLASHING "J" FOR JOBS.')}
 function update(dt){time+=dt;radioTick(dt);
  if(state==='boot'){bootT+=dt;if(bootT>6.2||edge.fire||edge.use)state='title';return}
@@ -517,7 +532,7 @@ function draw(){let border=0;
 
 // ---------- input & loop ----------
 const TOUCH=matchMedia('(pointer:coarse)').matches;
-const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'music',KeyF:'fx',KeyL:'sid',KeyN:'next',KeyR:'radio',KeyI:'info',Escape:'esc',KeyY:'yes'};
+const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyX:'hb',ShiftLeft:'hb',ShiftRight:'hb',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'music',KeyF:'fx',KeyL:'sid',KeyN:'next',KeyR:'radio',KeyI:'info',Escape:'esc',KeyY:'yes'};
 function press(k){initAudio();radioInit();if(sidEng)sidEng.unlock();if(k==='info'||(k==='esc'&&infoOpen)){infoToggle();return}if(infoOpen)return;
  if(quitAsk){if(k==='yes'||k==='fire'){quitAsk=false;paused=false;state='title';for(const q in K)K[q]=false;sidVol()}else if(k==='next'||k==='esc'||k==='use')quitAsk=false;return}
  if(k==='esc'){if(state==='play'){quitAsk=true;for(const q in K)K[q]=false}return}
