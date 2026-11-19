@@ -50,6 +50,13 @@ function press(k) {
     } else if (k === 'next' || k === 'esc' || k === 'use') G.quitAsk = false;
     return;
   }
+  if (G.screen === 'win' || G.screen === 'over') {
+    // The end screens ask "new game?": only yes, no and the music switch do anything.
+    if (k === 'yes' || k === 'fire') edge.yes = true;
+    else if (k === 'next' || k === 'use' || k === 'esc') edge.no = true;
+    else if (k === 'music') setMusic(!G.musicOn);
+    return;
+  }
   if (k === 'esc') {
     if (G.screen === 'play') {
       G.quitAsk = true;

@@ -3,13 +3,8 @@
 import { PI, SW, VH } from './config.js';
 import { HOSP } from './world.js';
 
-// Everything about the running game that more than one module changes.
-export const G = {
-  fxOn: true,
-  musicOn: false,
-  screen: 'boot', // 'boot', 'title', 'play', 'down' (dead or arrested) or 'win'
-  bootT: 0,
-  clock: 0,
+/** The parts of the state that belong to one game, as they are when it starts. */
+const freshGame = () => ({
   paused: false,
   cars: [],
   peds: [],
@@ -31,14 +26,8 @@ export const G = {
   sirenT: 0,
   job: null, // the active job, or null
   quitAsk: false, // the return-to-title dialog is open
-  sidPlayer: null, // the SID player module once it has loaded
-  station: 0, // index of the tuned radio station
-  nowPlaying: null, // the radio track that is loaded, or null
-  infoOpen: false, // the information page is open
-};
-export const K = {},
-  edge = {};
-export const P = {
+});
+const freshPlayer = () => ({
   x: HOSP.x,
   y: HOSP.y,
   a: PI / 2,
@@ -52,7 +41,29 @@ export const P = {
   hair: 0,
   skin: 10,
   type: 'civ',
+});
+// Everything about the running game that more than one module changes.
+export const G = {
+  fxOn: true,
+  musicOn: false,
+  // 'boot', 'title', 'play', 'down' (dead or arrested, about to respawn), 'over' (arrested broke) or 'win'
+  screen: 'boot',
+  bootT: 0,
+  clock: 0,
+  sidPlayer: null, // the SID player module once it has loaded
+  station: 0, // index of the tuned radio station
+  nowPlaying: null, // the radio track that is loaded, or null
+  infoOpen: false, // the information page is open
+  ...freshGame(),
 };
+export const K = {},
+  edge = {};
+export const P = freshPlayer();
+/** Put the game and the player back to how a new game starts. Sound settings and the radio are left alone. */
+export function resetState() {
+  Object.assign(G, freshGame());
+  Object.assign(P, freshPlayer());
+}
 export function msg(s) {
   G.msgTxt = s.toUpperCase();
   G.msgT = Math.max(4, s.length * 0.14 + 1.5);

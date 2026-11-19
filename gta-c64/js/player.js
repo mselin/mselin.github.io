@@ -41,6 +41,12 @@ export function down(kind, why) {
   if (G.job) failJob(null);
 }
 export function respawn() {
+  // Arrested with nothing left to confiscate: the game ends here.
+  if (downKind === 'busted' && G.cash === 0) {
+    G.screen = 'over';
+    G.banner = null;
+    return;
+  }
   const L = downKind === 'dead' ? HOSP : COPS;
   P.x = L.x;
   P.y = L.y;
