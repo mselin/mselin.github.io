@@ -10,6 +10,19 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 #pad button{pointer-events:auto;position:absolute;width:56px;height:56px;border:2px solid #959595;background:rgba(68,68,68,.55);color:#fff;font:bold 16px monospace;border-radius:4px;padding:0;touch-action:none}
 #pad button.on{background:rgba(108,94,181,.85)}
 @media (pointer:coarse){#pad{display:block}}
+#ibtn{position:fixed;left:10px;top:10px;width:34px;height:34px;border:2px solid #6c5eb5;background:#352879;color:#fff;font:bold 18px monospace;border-radius:4px;cursor:pointer;z-index:5}
+#info{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:10;align-items:center;justify-content:center;-webkit-user-select:text;user-select:text;touch-action:auto}
+#info.on{display:flex}
+#ibox{box-sizing:border-box;width:min(680px,94vw);max-height:92vh;overflow:auto;background:#352879;color:#b6adeb;border:10px solid #6c5eb5;padding:16px 20px;font:15px/1.5 ui-monospace,Menlo,Consolas,monospace;touch-action:pan-y}
+#ibox h1{font-size:20px;margin:0 0 8px;color:#fff;letter-spacing:2px}
+#ibox h2{font-size:15px;margin:18px 0 6px;color:#b8c76f;letter-spacing:1px}
+#ibox h3{font-size:14px;margin:12px 0 2px;color:#9ad284}
+#ibox p{margin:6px 0}#ibox a{color:#fff}
+#ibox ul{margin:2px 0;padding-left:20px}#ibox li{margin:1px 0}
+#ibox dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 14px;margin:6px 0}#ibox dt{color:#9ad284}#ibox dd{margin:0;color:#fff}
+#ibox button{font:inherit;background:#6c5eb5;color:#fff;border:2px solid #b6adeb;border-radius:3px;padding:4px 10px;margin:3px 4px 3px 0;cursor:pointer}
+#ibox button:hover,#ibtn:hover{background:#8a7dd0}
+#ibox .small{font-size:13px;color:#b6adeb}
 </style></head><body>
 <div id="wrap"><canvas id="c" width="384" height="272" tabindex="0"></canvas></div>
 <input id="sidfile" type="file" accept=".sid,.psid,.dat" style="display:none">
@@ -19,11 +32,30 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 <button data-k="up" style="left:70px;bottom:130px">^</button>
 <button data-k="down" style="left:70px;bottom:10px">v</button>
 <button data-k="use" style="right:80px;bottom:30px">CAR</button>
-<button data-k="sid" style="right:12px;top:12px;height:36px">SID</button>
-<button data-k="radio" style="right:76px;top:12px;height:36px">RADIO</button>
-<button data-k="next" style="right:140px;top:12px;height:36px">NEXT</button>
+<button data-k="music" style="right:12px;top:12px;height:36px;width:64px">MUSIC</button>
+<button data-k="radio" style="right:84px;top:12px;height:36px;width:64px">RADIO</button>
+<button data-k="next" style="right:156px;top:12px;height:36px">NEXT</button>
 <button data-k="fire" style="right:12px;bottom:90px">FIRE</button>
 </div>
+<button id="ibtn" aria-label="Game information" title="Game information (I)">i</button>
+<div id="info" role="dialog" aria-modal="true" aria-labelledby="ih"><div id="ibox">
+<h1 id="ih">SLEAZEBURG 64</h1>
+<p>A top-down crime satire in the style of an 8-bit home computer game: 320&times;200 pixels, 16 colours, sprites and three-voice sound. Walk, drive, take jobs from the flashing J markers, dodge the law, and raise $25,000 to buy the election.</p>
+<p class="small">An original game. Every place, business and official in Sleazeburg is made up.</p>
+<h2>CONTROLS</h2>
+<dl><dt>Arrows / WASD</dt><dd>Walk, drive</dd><dt>Space</dt><dd>Fire or punch on foot, horn in a car</dd><dt>E / Enter</dt><dd>Get in or out of a car</dd><dt>M</dt><dd>Music on or off (starts off)</dd><dt>R / N</dt><dd>Next radio station / next tune</dd><dt>F</dt><dd>Sound effects on or off</dd><dt>P</dt><dd>Pause</dd><dt>I / Esc</dt><dd>Open or close this page</dd></dl>
+<h2>RADIO</h2>
+<p><button id="bmus"></button><button id="bfx"></button><button id="bst">NEXT STATION</button><button id="bnx">NEXT TUNE</button><button id="bld">PLAY A .SID FILE</button></p>
+<dl id="now"></dl>
+<p class="small">The radio plays on the title screen and while you drive. Tunes are real Commodore 64 music, streamed on demand from the <a href="https://www.hvsc.c64.org/" target="_blank" rel="noopener">High Voltage SID Collection</a> and played by a SID chip emulator in your browser. Emulation is approximate, so some tunes sound different from the real hardware.</p>
+<div id="plist"></div>
+<h2>CREDITS</h2>
+<ul><li>Music: the composers listed above. All tunes remain the property of their authors and publishers.</li>
+<li>Music archive: <a href="https://www.hvsc.c64.org/" target="_blank" rel="noopener">High Voltage SID Collection (HVSC)</a>, which also supplies the title, author and release details shown here.</li>
+<li>SID emulation: <a href="http://hermit.sidrip.com/jsSID.html" target="_blank" rel="noopener">jsSID</a> by Hermit (Mihaly Horvath).</li>
+<li>Game, graphics and the built-in "SID FM" tune: made for this site.</li></ul>
+<p><button id="iclose">CLOSE</button></p>
+</div></div>
 <script>
 'use strict';
 // ---------- basics ----------
@@ -156,19 +188,19 @@ function renderMap(){const m=mctx;
 }
 
 // ---------- audio ----------
-let AC=null,master=null,muted=false,noiseBuf=null,eng=null,engG=null;
+let AC=null,master=null,fxOn=true,musicOn=false,inMus=false,noiseBuf=null,eng=null,engG=null;
 function initAudio(){if(AC){if(AC.state==='suspended')AC.resume();return}try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.22;master.connect(AC.destination);
  noiseBuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=R()*2-1;
  eng=AC.createOscillator();eng.type='sawtooth';eng.frequency.value=40;const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=380;engG=AC.createGain();engG.gain.value=0;eng.connect(lp);lp.connect(engG);engG.connect(master);eng.start()}catch(e){AC=null}}
-function tone(f0,f1,dur,type,vol,delay){if(!AC||muted)return;try{const t=AC.currentTime+(delay||0),o=AC.createOscillator(),gn=AC.createGain();o.type=type||'square';o.frequency.setValueAtTime(f0,t);if(f1&&f1!==f0)o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);gn.gain.setValueAtTime(vol||.3,t);gn.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(gn);gn.connect(master);o.start(t);o.stop(t+dur+.02)}catch(e){}}
-function noise(dur,vol,fq,delay){if(!AC||muted)return;try{const t=AC.currentTime+(delay||0),s=AC.createBufferSource(),f=AC.createBiquadFilter(),gn=AC.createGain();s.buffer=noiseBuf;f.type='lowpass';f.frequency.value=fq||2000;gn.gain.setValueAtTime(vol||.4,t);gn.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(f);f.connect(gn);gn.connect(master);s.start(t,R()*.5,dur+.05)}catch(e){}}
+function tone(f0,f1,dur,type,vol,delay){if(!AC||!(inMus?musicOn:fxOn))return;try{const t=AC.currentTime+(delay||0),o=AC.createOscillator(),gn=AC.createGain();o.type=type||'square';o.frequency.setValueAtTime(f0,t);if(f1&&f1!==f0)o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);gn.gain.setValueAtTime(vol||.3,t);gn.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(gn);gn.connect(master);o.start(t);o.stop(t+dur+.02)}catch(e){}}
+function noise(dur,vol,fq,delay){if(!AC||!(inMus?musicOn:fxOn))return;try{const t=AC.currentTime+(delay||0),s=AC.createBufferSource(),f=AC.createBiquadFilter(),gn=AC.createGain();s.buffer=noiseBuf;f.type='lowpass';f.frequency.value=fq||2000;gn.gain.setValueAtTime(vol||.4,t);gn.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(f);f.connect(gn);gn.connect(master);s.start(t,R()*.5,dur+.05)}catch(e){}}
 const sfx={shot(){noise(.09,.5,5000);tone(900,150,.09,'square',.2)},punch(){noise(.06,.4,900)},crash(v){noise(.22,clamp(v,.2,.7),1400)},boom(){noise(.9,.9,500);tone(120,30,.6,'triangle',.5)},
  pick(){tone(660,1320,.09,'square',.25);tone(990,1980,.09,'square',.2,.08)},horn(){tone(310,310,.22,'square',.25);tone(390,390,.22,'square',.2)},squish(){noise(.12,.5,700);tone(200,60,.12,'triangle',.3)},
  door(){noise(.05,.3,800);tone(140,90,.06,'square',.15,.04)},good(){[523,659,784,1047].forEach((f,i)=>tone(f,f,.14,'square',.25,i*.1))},bad(){[330,262,196,131].forEach((f,i)=>tone(f,f,.2,'sawtooth',.2,i*.16))},heat(){tone(500,900,.12,'square',.25);tone(500,900,.12,'square',.25,.15)}};
 const BASS=[45,0,45,57,0,45,0,57,41,0,41,53,0,41,0,53,43,0,43,55,0,43,0,55,40,0,40,52,0,40,47,52];
 const LEAD=[69,72,76,72,69,72,76,81,65,69,72,69,65,69,72,77,67,71,74,71,67,71,74,79,64,67,71,67,76,74,71,67];
 const mf=n=>440*Math.pow(2,(n-69)/12);let mT=0,mS=0;
-function music(dt){mT-=dt;if(mT>0)return;mT+=.14;if(mT<0)mT=.14;const s=mS++%32;if(BASS[s])tone(mf(BASS[s]),0,.13,'triangle',.4);tone(mf(LEAD[s]),0,.1,'square',.09);if(s%4===0)tone(110,40,.08,'sine',.5);if(s%8===4)noise(.07,.25,6000);else if(s%2)noise(.02,.08,9000)}
+function music(dt){mT-=dt;if(mT>0)return;inMus=true;mT+=.14;if(mT<0)mT=.14;const s=mS++%32;if(BASS[s])tone(mf(BASS[s]),0,.13,'triangle',.4);tone(mf(LEAD[s]),0,.1,'square',.09);if(s%4===0)tone(110,40,.08,'sine',.5);if(s%8===4)noise(.07,.25,6000);else if(s%2)noise(.02,.08,9000);inMus=false}
 
 // ---------- state ----------
 let state='boot',bootT=0,time=0,paused=false,won=false;
@@ -307,7 +339,7 @@ function spawner(dt){const p=ppos();
 // ---------- player ----------
 function enterCar(){let best=null,bd=19;for(const c of cars){if(c.dead)continue;const d=hyp(c.x-P.x,c.y-P.y);if(d<bd){bd=d;best=c}}if(!best)return;const c=best;
  if(c.driver){const s=sidePos(c)||{x:c.x,y:c.y};const q=mkPed(s.x,s.y,'civ');q.flee=6;peds.push(q);crime(c.kind===KIND.police?16:4);msg(c.kind===KIND.police?'OFFICER: "THAT IS A COMPANY CAR!"':pick(JACK))}
- c.vx=c.ai==='traffic'?DIRS[c.dir][0]*c.sp:c.vx;c.vy=c.ai==='traffic'?DIRS[c.dir][1]*c.sp:c.vy;c.ai=null;c.driver=false;c.parked=false;P.car=c;sfx.door();pops.push({x:0,y:0,t:'RADIO: '+radio[stI].name,col:7,l:2.5,hud:true})}
+ c.vx=c.ai==='traffic'?DIRS[c.dir][0]*c.sp:c.vx;c.vy=c.ai==='traffic'?DIRS[c.dir][1]*c.sp:c.vy;c.ai=null;c.driver=false;c.parked=false;P.car=c;sfx.door();if(musicOn)pops.push({x:0,y:0,t:'RADIO: '+radio[stI].name,col:7,l:2.5,hud:true})}
 function exitCar(){const c=P.car;if(hyp(c.vx,c.vy)>45)return;const s=sidePos(c);if(!s)return;P.x=s.x;P.y=s.y;P.car=null;sfx.door()}
 function scare(x,y,r,t){for(const q of peds)if(q.type!=='cop'&&hyp(q.x-x,q.y-y)<r){q.flee=t;q.fx=x;q.fy=y}}
 const footHits=(x,y)=>solidAt(x-3,y-3)||solidAt(x+3,y-3)||solidAt(x-3,y+3)||solidAt(x+3,y+3);
@@ -399,9 +431,9 @@ function updHeat(dt){const p=ppos();let near=false;for(const c of cars)if(c.ai==
 function startGame(){state='play';msg('YOU WAKE UP OUTSIDE ST. INVOICE HOSPITAL. BUY THE ELECTION: $'+GOAL+'. FIND A FLASHING "J" FOR JOBS.')}
 function update(dt){time+=dt;radioTick(dt);
  if(state==='boot'){bootT+=dt;if(bootT>6.2||edge.fire||edge.use)state='title';return}
- if(state==='title'){music(dt);if(edge.fire||edge.use)startGame();return}
- if(state==='win'){music(dt);if(edge.fire||edge.use)state='play';return}
- if(edge.pause){paused=!paused;sidVol()}if(paused){if(engG)engG.gain.value=0;return}
+ if(state==='title'){if(edge.fire||edge.use)startGame();return}
+ if(state==='win'){if(edge.fire||edge.use)state='play';return}
+ if(edge.pause){paused=!paused;sidVol()}if(paused||infoOpen){if(engG)engG.gain.value=0;return}
  updPlayer(dt);updCars(dt);updPeds(dt);updBullets(dt);updPickups(dt);updHeat(dt);
  if(state==='play')updJob(dt);
  spawner(dt);
@@ -411,7 +443,7 @@ function update(dt){time+=dt;radioTick(dt);
  if(msgT>0){msgT-=dt;msgAge+=dt}if(big){big.d-=dt;if(big.d<=0)big=null}
  const p=ppos(),lx=P.car?P.car.vx*.3:0,ly=P.car?P.car.vy*.3:0;
  const tx=clamp(p.x+lx-SW/2,0,WPX-SW),ty=clamp(p.y+ly-VH/2,0,WPX-VH);camX+=(tx-camX)*Math.min(1,6*dt);camY+=(ty-camY)*Math.min(1,6*dt);
- if(AC&&engG){const sp=P.car?hyp(P.car.vx,P.car.vy):0;engG.gain.value=(P.car&&!muted&&state==='play')?.05:0;eng.frequency.value=38+sp*.55;}}
+ if(AC&&engG){const sp=P.car?hyp(P.car.vx,P.car.vy):0;engG.gain.value=(P.car&&fxOn&&state==='play')?.05:0;eng.frequency.value=38+sp*.55;}}
 
 // ---------- draw ----------
 function drawSpr(fr,a,x,y){const n=fr.length,i=mod(Math.round(a/(PI*2)*n),n),s=fr[0].width;g.drawImage(fr[i],Math.round(x-camXi-s/2),Math.round(y-camYi-s/2))}
@@ -450,6 +482,7 @@ function drawWorld(){camXi=Math.round(camX);camYi=Math.round(camY);
   text(d.t.slice(0,24),0,VH+9,7);text(pr,216,VH+9,1);text(tm,280,VH+9,t<15&&(Math.floor(time*4)&1)?2:1)}
  else text('NO JOB. FOLLOW THE ARROW TO A "J".',0,VH+9,12);
  if(msgT>0){const w=msgTxt.length*8;let x=0;if(w>SW)x=-Math.round(clamp((msgAge-1)*70,0,w-SW));text(msgTxt,x,VH+17,1)}
+ else if(P.car&&radioAudible()){const t='RADIO '+radio[stI].name+': '+npText()+'   ',w=t.length*8;if(w<=SW)text(t,0,VH+17,14);else{const o=Math.floor(time*45)%w;text(t,-o,VH+17,14);text(t,w-o,VH+17,14)}}
  else text('ELECTION FUND: $'+cash+' / $'+GOAL,0,VH+17,11);
 }
 const BARS=[2,8,7,13,3,14,4,10,1,10,4,14,3,13,7,8];
@@ -461,8 +494,9 @@ function drawTitle(){g.fillStyle=PAL[0];g.fillRect(0,0,SW,SH);
  for(let i=0;i<6;i++){g.fillStyle=PAL[BARS[mod(i+Math.floor(time*6),BARS.length)]];g.fillRect(0,12+i*2,SW,1);g.fillRect(0,68+i*2,SW,1)}
  g.drawImage(logoC,40,30);text('64',264,58,7);
  ctext('A TOTALLY ORIGINAL CRIME SATIRE',86,15);ctext('8 BITS. 16 COLOURS. 0 SCRUPLES.',96,12);
- text('ARROWS / WASD   WALK - DRIVE',48,116,3);text('SPACE           FIRE - HORN',48,126,3);text('E / ENTER       "BORROW" CAR',48,136,3);text('P PAUSE         M MUTE',48,146,3);text('R RADIO  N NEXT TUNE  L LOAD .SID',28,156,14);
- if(Math.floor(time*2)&1)ctext('PRESS FIRE TO COMMIT CRIMES',172,1);
+ text('ARROWS / WASD   WALK - DRIVE',48,116,3);text('SPACE           FIRE - HORN',48,126,3);text('E / ENTER       "BORROW" CAR',48,136,3);text('P PAUSE         I INFO - CREDITS',48,146,3);text('M MUSIC ON/OFF  R STATION  N NEXT',48,156,14);
+ {const t=musicOn?(radioAudible()?'NOW PLAYING: '+npText():'TUNING IN ...'):'MUSIC IS OFF - PRESS M TO TURN IT ON';if(t.length<=40)ctext(t,166,musicOn?7:12);else{const u=t+'     ',w=u.length*8,o=Math.floor(time*45)%w;text(u,-o,166,7);text(u,w-o,166,7)}}
+ if(Math.floor(time*2)&1)ctext('PRESS FIRE TO COMMIT CRIMES',176,1);
  const off=Math.floor(time*60)%(SCROLL.length*8);text(SCROLL,-off,188,13);if(off>SCROLL.length*8-SW)text(SCROLL,SCROLL.length*8-off,188,13)}
 function drawBoot(){g.fillStyle=PAL[6];g.fillRect(0,0,SW,SH);const t=bootT,c=14;
  text('    **** SLEAZEBURG 64 BASIC V2 ****',0,8,c);text(' 64K RAM SYSTEM  38911 MORAL BYTES FREE',0,24,c);
@@ -479,41 +513,72 @@ function draw(){let border=0;
  cx.drawImage(scr,BX,BY)}
 
 // ---------- input & loop ----------
-const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'mute',KeyL:'sid',KeyN:'next',KeyR:'radio'};
-function press(k){if(!K[k])edge[k]=true;K[k]=true;initAudio();if(k==='mute'){muted=!muted;if(master)master.gain.value=muted?0:.22;sidVol()}if(k==='sid')sidInput.click();if(k==='next')radioNext();if(k==='radio'&&state==='play')radioStation();radioInit()}
-addEventListener('keydown',e=>{const k=KM[e.code];if(k){e.preventDefault();if(!e.repeat)press(k)}});
+const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'fire',KeyE:'use',Enter:'use',KeyP:'pause',KeyM:'music',KeyF:'fx',KeyL:'sid',KeyN:'next',KeyR:'radio',KeyI:'info',Escape:'esc'};
+function press(k){initAudio();radioInit();if(k==='info'||(k==='esc'&&infoOpen)){infoToggle();return}if(infoOpen)return;if(!K[k])edge[k]=true;K[k]=true;if(k==='music')setMusic(!musicOn);if(k==='fx')setFx(!fxOn);if(k==='sid')sidInput.click();if(k==='next')radioNext();if(k==='radio')radioStation()}
+addEventListener('keydown',e=>{const k=KM[e.code];if(e.ctrlKey||e.metaKey||e.altKey)return;if(infoOpen&&k!=='info'&&k!=='esc')return;if(k){e.preventDefault();if(!e.repeat)press(k)}});
 addEventListener('keyup',e=>{const k=KM[e.code];if(k){e.preventDefault();K[k]=false}});
 addEventListener('blur',()=>{for(const k in K)K[k]=false});
-cv.addEventListener('pointerdown',()=>{cv.focus();initAudio();radioInit();if(state!=='play'&&state!=='down')edge.fire=true});
+cv.addEventListener('pointerdown',()=>{cv.focus();initAudio();radioInit();if(state!=='play'&&state!=='down'&&!infoOpen)edge.fire=true});
 document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k;const up=e=>{e.preventDefault();K[k]=false;b.classList.remove('on')};
  b.addEventListener('pointerdown',e=>{e.preventDefault();press(k);b.classList.add('on');try{b.setPointerCapture(e.pointerId)}catch(_){}});b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('contextmenu',e=>e.preventDefault())});
-// ---------- radio: built-in tune, SID stations from radio/stations.json, own .sid files (jsSID by Hermit, loaded on demand) ----------
+// ---------- radio: built-in tune, SID stations from radio/stations.json (HVSC or local files), own .sid files. jsSID by Hermit, loaded on demand ----------
+const HVSC='https://www.hvsc.c64.org',HVSC_BASE=HVSC+'/download/C64Music';
 const radio=[{name:'SID FM',tagline:'THE HOUSE BAND. ALL THREE VOICES, ALL THE TIME',builtin:true},{name:'RADIO OFF',tagline:'ENJOY THE ENGINE NOISE'}];
-let sid=null,sidReady=false,sidPlaying=false,sidSub=0,sidLib=null,stI=0,loadSeq=0,radioTried=false;const sidInput=document.getElementById('sidfile');
-const sidClean=t=>t.replace(/\0/g,'').trim();
-function sidVol(){if(sid)sid.setvolume(muted||paused?0:.9)}
+let sid=null,sidReady=false,sidPlaying=false,sidSub=0,sidLib=null,stI=0,loadSeq=0,radioTried=false,needTune=true,np=null,infoOpen=false,quietT=0,lastOut=0;const sidInput=document.getElementById('sidfile');
+try{musicOn=localStorage.getItem('sb64music')==='1'}catch(e){}
+const sidClean=t=>t.replace(/\0/g,'').trim(),fontSafe=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const radioWant=()=>musicOn&&!paused&&(state==='title'||state==='win'||(state==='play'&&!!P.car));
+const radioAudible=()=>{const st=radio[stI];return musicOn&&(st.builtin||(!!st.tracks&&sidReady&&sidPlaying))};
+function npText(){const st=radio[stI];if(st.builtin)return'SLEAZEBURG THEME - THE HOUSE BAND';const t=np;if(!t)return'...';return fontSafe((t.title||'UNTITLED')+' - '+(t.author||'UNKNOWN')+(t.released?' ('+t.released+')':''))}
+function sidVol(){if(sid)sid.setvolume(musicOn&&!paused?.9:0)}
 function sidLoadLib(){return sidLib||(sidLib=new Promise((ok,no)=>{const s=document.createElement('script');s.src='jsSID.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)}))}
-function sidEnsure(){if(sid)return;sid=new jsSID(8192,.0005);sid.setloadcallback(()=>{sidReady=true;sid.setmodel(sid.getprefmodel());sidVol();const st=radio[stI];if(state==='play'&&(P.car||st.tape))msg(st.name+': '+(sidClean(sid.gettitle())||'UNTITLED')+' - '+(sidClean(sid.getauthor())||'UNKNOWN'))})}
-function trackUrl(t){return t.blob?Promise.resolve(t.blob):fetch(t.url).then(r=>{if(!r.ok)throw 0;return r.blob()}).then(b=>b.slice(0,4).text().then(m=>{if(m!=='PSID'&&m!=='RSID')throw 0;return t.blob=URL.createObjectURL(b)}))}
-function playTrack(st,fails){const t=st.tracks[st.i],seq=++loadSeq;sidReady=false;
- trackUrl(t).then(u=>sidLoadLib().then(()=>{if(seq!==loadSeq)return;sidEnsure();sidSub=t.sub;sid.setendcallback(()=>setTimeout(radioNext,0),t.secs);sid.loadstart(u,t.sub);sidPlaying=true}))
- .catch(()=>{if(seq!==loadSeq)return;if(fails+1<st.tracks.length){st.i=(st.i+1)%st.tracks.length;playTrack(st,fails+1)}else msg(st.name+': DEAD AIR. NO PLAYABLE TUNES FOUND.')})}
-function tune(){const st=radio[stI];loadSeq++;if(sid&&sidReady&&sidPlaying)sid.pause();sidPlaying=false;sidReady=false;if(st.tracks)playTrack(st,0)}
-function radioStation(){stI=(stI+1)%radio.length;const st=radio[stI];tune();msg('RADIO: '+st.name+(st.tagline?' - '+st.tagline:''));tone(900,400,.05,'square',.15)}
-function radioNext(){const st=radio[stI];if(!st.tracks||!sid)return;
- if(st.tracks.length===1){if(!sidReady)return;const n=sid.getsubtunes()||1;sidSub=(sidSub+1)%n;sid.start(sidSub);sidVol();sidPlaying=true;if(n>1)msg(st.name+': TUNE '+(sidSub+1)+'/'+n);return}
- st.i=(st.i+1)%st.tracks.length;playTrack(st,0)}
-function radioTick(dt){const st=radio[stI],want=state==='play'&&!!P.car&&!paused;if(st.builtin&&want)music(dt);
- if(sid&&sidReady){const w=want&&!!st.tracks;if(w&&!sidPlaying){sid.playcont();sidPlaying=true}else if(!w&&sidPlaying){sid.pause();sidPlaying=false}}}
+function sidEnsure(){if(sid)return;sid=new jsSID(8192,.0005);sid.setloadcallback(()=>{sidReady=true;sid.setmodel(sid.getprefmodel());sidVol();const t=np;if(t){t.title=t.title||sidClean(sid.gettitle());t.author=t.author||sidClean(sid.getauthor());t.released=t.released||sidClean(sid.getinfo())}
+  if(state==='play'&&radioWant())msg(radio[stI].name+': '+npText());infoRender()})}
+function trackUrl(t){return t.blob?Promise.resolve(t.blob):fetch(t.url).then(r=>{if(!r.ok)throw 0;return r.blob()}).then(b=>b.slice(0,18).arrayBuffer().then(h=>{const d=new Uint8Array(h),m=String.fromCharCode(d[0],d[1],d[2],d[3]);if(m!=='PSID'&&m!=='RSID')throw 0;t.start=Math.max(0,(d[17]||1)-1);return t.blob=URL.createObjectURL(b)}))}
+function playTrack(st,fails){const t=st.tracks[st.i],seq=++loadSeq;sidReady=false;quietT=0;
+ trackUrl(t).then(u=>sidLoadLib().then(()=>{if(seq!==loadSeq)return;sidEnsure();np=t;sidSub=t.sub!=null?t.sub:(t.start||0);sid.setendcallback(()=>setTimeout(radioNext,0,true),t.secs);sid.loadstart(u,sidSub);sidPlaying=true}))
+ .catch(()=>{if(seq!==loadSeq)return;if(fails+1<st.tracks.length){advance(st);playTrack(st,fails+1)}else msg(st.name+': DEAD AIR. NO PLAYABLE TUNES FOUND.')})}
+function advance(st){st.i++;if(st.i>=st.tracks.length){st.i=0;if(st.tracks.length>2){const last=st.tracks[st.tracks.length-1];shuffle(st.tracks);if(st.tracks[0]===last)st.tracks.push(st.tracks.shift())}}}
+function silence(){loadSeq++;if(sid&&sidReady&&sidPlaying)sid.pause();sidPlaying=false;sidReady=false;np=null;needTune=true}
+function radioStation(){stI=(stI+1)%radio.length;const st=radio[stI];silence();msg('RADIO: '+st.name+(st.tagline?' - '+st.tagline:'')+(musicOn?'':' (MUSIC IS OFF - PRESS M)'));tone(900,400,.05,'square',.15);infoRender()}
+function radioNext(auto){const st=radio[stI];if(!st.tracks||!sid||!musicOn)return;
+ if(st.tracks.length===1){if(!sidReady)return;const n=sid.getsubtunes()||1;sidSub=(sidSub+1)%n;sid.start(sidSub);sidVol();sidPlaying=true;if(n>1&&!auto)msg(st.name+': TUNE '+(sidSub+1)+'/'+n);return}
+ advance(st);playTrack(st,0)}
+function radioTick(dt){const st=radio[stI],want=radioWant();if(st.builtin&&want)music(dt);
+ if(want&&st.tracks&&needTune){needTune=false;playTrack(st,0)}
+ if(sid&&sidReady){const w=want&&!!st.tracks;if(w&&!sidPlaying){sid.playcont();sidPlaying=true}else if(!w&&sidPlaying){sid.pause();sidPlaying=false}
+  if(w&&sidPlaying&&st.tracks.length>1){const v=sid.getoutput();quietT=Math.abs(v-lastOut)>.004?0:quietT+dt;lastOut=v;if(quietT>10){quietT=0;radioNext(true)}}}}
+function setMusic(on){musicOn=on;try{localStorage.setItem('sb64music',on?'1':'0')}catch(e){}sidVol();if(state==='play')msg(on?'MUSIC ON. RADIO: '+radio[stI].name:'MUSIC OFF.');infoRender()}
+function setFx(on){fxOn=on;if(state==='play')msg(on?'SOUND EFFECTS ON.':'SOUND EFFECTS OFF.');infoRender()}
 function radioInit(){if(radioTried)return;radioTried=true;fetch('radio/stations.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{const add=[];
-  for(const s of(j&&j.stations)||[]){const tr=((s&&s.tracks)||[]).filter(t=>t&&typeof t.file==='string'&&/^\w[\w .\/-]*\.sid$/i.test(t.file)&&!t.file.includes('..'));
-   if(tr.length)add.push({name:String(s.name||'UNNAMED FM').slice(0,20).toUpperCase(),tagline:String(s.tagline||'').slice(0,80),tracks:tr.map(t=>({url:'radio/'+encodeURI(t.file),sub:Math.max(0,(t.subtune|0)-1),secs:t.seconds>0?+t.seconds:180})),i:Math.floor(R()*tr.length)})}
-  if(add.length){radio.splice(1,0,...add);if(stI===0){stI=1;tune()}else if(stI>0)stI+=add.length}}).catch(()=>{})}
+  let base=HVSC_BASE;if(j&&typeof j.hvscBase==='string'&&(/^https:\/\/(www\.)?hvsc\.c64\.org\/download\/C64Music$/.test(j.hvscBase)||(/^[\w][\w.\/-]*$/.test(j.hvscBase)&&!j.hvscBase.includes('..'))))base=j.hvscBase.replace(/\/$/,'');
+  const str=(v,n)=>typeof v==='string'?v.slice(0,n):'';
+  for(const s of(j&&j.stations)||[]){const tr=[];for(const t of(s&&s.tracks)||[]){if(!t)continue;let url=null;
+    if(typeof t.hvsc==='string'&&/^\/[\w][\w .\/-]*\.sid$/i.test(t.hvsc)&&!t.hvsc.includes('..'))url=base+encodeURI(t.hvsc);
+    else if(typeof t.file==='string'&&/^\w[\w .\/-]*\.sid$/i.test(t.file)&&!t.file.includes('..'))url='radio/'+encodeURI(t.file);
+    if(url)tr.push({url,sub:t.subtune>0?(t.subtune|0)-1:null,secs:t.seconds>0?+t.seconds:180,title:str(t.title,80),author:str(t.author,80),released:str(t.released,80),id:Number.isInteger(t.id)&&t.id>0?t.id:0})}
+   if(tr.length)add.push({name:fontSafe(str(s.name,20)||'UNNAMED FM'),tagline:fontSafe(str(s.tagline,80)),tracks:shuffle(tr),i:0})}
+  if(add.length){radio.splice(1,0,...add);if(stI===0){stI=1;silence()}else stI+=add.length;infoRender()}}).catch(()=>{})}
 function sidFile(f){if(!f)return;if(!/\.(sid|psid|dat)$/i.test(f.name)){msg('THE TAPE DECK ONLY PLAYS .SID FILES. STANDARDS, PLEASE.');return}
  let k=radio.findIndex(s=>s.tape);if(k<0){k=radio.length-1;radio.splice(k,0,{name:'TAPE DECK',tagline:'YOUR OWN CASSETTE',tape:true,tracks:[],i:0})}
- radio[k].tracks=[{blob:URL.createObjectURL(f),sub:0,secs:600}];radio[k].i=0;stI=k;tune()}
+ radio[k].tracks=[{blob:URL.createObjectURL(f),sub:null,start:0,secs:600,title:'',author:'',released:'',id:0}];radio[k].i=0;stI=k;silence();if(!musicOn)setMusic(true);infoRender()}
 sidInput.addEventListener('change',()=>{sidFile(sidInput.files[0]);sidInput.value=''});
-addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>{e.preventDefault();sidFile(e.dataTransfer.files[0])});
+addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>{e.preventDefault();initAudio();sidFile(e.dataTransfer.files[0])});
+// ---------- information page ----------
+const $=id=>document.getElementById(id),el=(tag,txt)=>{const e=document.createElement(tag);if(txt!=null)e.textContent=txt;return e};
+function hvscLink(t,label){const a=el('a',label);a.href=HVSC+'/search?sid='+t.id;a.target='_blank';a.rel='noopener';return a}
+function infoRender(){if(!infoOpen)return;$('bmus').textContent='MUSIC: '+(musicOn?'ON':'OFF');$('bfx').textContent='SOUND FX: '+(fxOn?'ON':'OFF');
+ const st=radio[stI],now=$('now');now.textContent='';const row=(k,v)=>{now.appendChild(el('dt',k));const d=el('dd');if(typeof v==='string')d.textContent=v;else d.appendChild(v);now.appendChild(d)};
+ row('Station',st.name+(musicOn?'':' (music is off)'));
+ if(st.builtin){row('Title','Sleazeburg Theme');row('Author','The house band (built into the game)')}
+ else if(st.tracks){const t=np||st.tracks[st.i];row('Title',t.title||'(shown once the tune has loaded)');if(t.author)row('Author',t.author);if(t.released)row('Released',t.released);if(t.id)row('Source',hvscLink(t,'This tune in the High Voltage SID Collection'))}
+ const pl=$('plist');pl.textContent='';const ss=radio.filter(s=>s.tracks&&!s.tape);if(ss.length)pl.appendChild(el('h2','PLAYLIST'));
+ for(const s of ss){pl.appendChild(el('h3',s.name+(s.tagline?' - '+s.tagline:'')));const ul=el('ul');
+  for(const t of s.tracks.slice().sort((x,y)=>(x.title||'').localeCompare(y.title||''))){const li=el('li');if(t.id)li.appendChild(hvscLink(t,t.title||'Untitled'));else li.appendChild(el('span',t.title||t.url.split('/').pop()));li.appendChild(document.createTextNode((t.author?' by '+t.author:'')+(t.released?' ('+t.released+')':'')));ul.appendChild(li)}pl.appendChild(ul)}}
+function infoToggle(){infoOpen=!infoOpen;$('info').classList.toggle('on',infoOpen);for(const k in K)K[k]=false;if(infoOpen){infoRender();$('iclose').focus()}else cv.focus()}
+$('ibtn').addEventListener('click',()=>{initAudio();radioInit();infoToggle()});$('iclose').addEventListener('click',infoToggle);$('info').addEventListener('click',e=>{if(e.target===$('info'))infoToggle()});
+$('bmus').addEventListener('click',()=>{initAudio();setMusic(!musicOn)});$('bfx').addEventListener('click',()=>setFx(!fxOn));$('bst').addEventListener('click',radioStation);$('bnx').addEventListener('click',()=>radioNext());$('bld').addEventListener('click',()=>sidInput.click());
 genMap();renderMap();
 for(const s of parkSpots){const r=R(),c=mkCar(r<.6?KIND.sedan:r<.8?KIND.van:KIND.sports,s.x,s.y,s.a);c.parked=true;cars.push(c)}
 {const c=mkCar(KIND.sedan,HOSP.x+40,HOSP.y,0,14);c.parked=true;cars.push(c)}
