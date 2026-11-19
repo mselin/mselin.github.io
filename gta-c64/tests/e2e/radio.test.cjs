@@ -144,11 +144,8 @@ test('when no tune can be fetched, a station goes quiet after trying each one on
   });
   game.errors = { push() {} }; // the browser logs each 404; that is the point of this test
   await game.press('KeyM');
-  await game
-    .until((s) => /DEAD AIR/.test(s.G.msgTxt) || (s.G.screen === 'title' && false), 15000)
-    .catch(() => {});
-  await game.page.waitForFunction(() => true);
-  await game.wait(3000);
+  await game.until((s) => /DEAD AIR/.test(s.G.msgTxt), 20000);
+  await game.wait(1000);
   const settled = asked;
   assert.equal(
     settled,
