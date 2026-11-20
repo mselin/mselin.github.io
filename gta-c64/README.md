@@ -51,7 +51,7 @@ npm test
 | `js/endings.js` | The game-over and victory screens. |
 | `js/icons.js` | Pixel-art icons for the touch-screen buttons. |
 | `js/help.js`, `js/glyphs.js` | What the game says about its controls, for keyboards and for touch screens; the font's letter shapes. |
-| `specs/` | Feature specs. [Playing on a phone](specs/touch-controls.md) lists every touch-screen requirement and the tests for each. |
+| `specs/` | The [game design](specs/design.md): the rules and the look, with the numbers, for every version including the Commodore 64 one. Feature specs: [playing on a phone](specs/touch-controls.md) lists every touch-screen requirement and the tests for each. |
 | `assets/` | Picture files: the two end screens. |
 | `js/screen.js`, `js/font.js`, `js/sprites.js`, `js/audio.js` | Canvas, bitmap font, sprites, sound effects and the built-in tune. |
 | `js/figures.js` | People on foot as pixel art: passers-by, police, scooter riders, cultists and the player. |

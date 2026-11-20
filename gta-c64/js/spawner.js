@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Keeps traffic, pedestrians, police and pickups populated around the player.
-import { BLK, DIRS, GRASS, KIND, MW, NB, PI, PLAZA, WALK, WPX } from './config.js';
+import { BLK, DIRS, GRASS, KIND, MW, NB, NOTICE, PI, PLAZA, WALK, WPX } from './config.js';
 import { R, clamp, hyp, mod } from './util.js';
 import { map, tileAt } from './world.js';
 import { G, P, onScreen, ppos } from './state.js';
@@ -145,7 +145,7 @@ export function spawner(dt) {
     if (G.heat > 0 && n < Math.min(5, G.heat)) spawnRoad(true);
     if (G.heat > 0)
       for (const c of G.cars)
-        if (c.ai === 'traffic' && c.kind === KIND.police && hyp(c.x - p.x, c.y - p.y) < 130) {
+        if (c.ai === 'traffic' && c.kind === KIND.police && hyp(c.x - p.x, c.y - p.y) < NOTICE.patrol) {
           c.ai = 'cop';
           c.vx = DIRS[c.dir][0] * c.sp;
           c.vy = DIRS[c.dir][1] * c.sp;
