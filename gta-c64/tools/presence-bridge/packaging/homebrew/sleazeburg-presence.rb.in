@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Homebrew formula for the Sleazeburg 64 presence bridge. It builds the program on your Mac from the tagged
+# source code; nothing prebuilt is downloaded.
+#
+# This is a template: render.sh fills in the address and checksum of a release's source archive.
+class SleazeburgPresence < Formula
+  desc "Shows what you are doing in the Sleazeburg 64 browser game on your Discord profile"
+  homepage "https://github.com/mselin/mselin.github.io/tree/main/gta-c64/tools/presence-bridge"
+  url "@URL@"
+  version "@VERSION@"
+  sha256 "@SHA256@"
+  license "GPL-2.0-or-later"
+
+  depends_on "go" => :build
+
+  def install
+    # Build with Homebrew's own Go, without fetching another toolchain.
+    ENV["GOTOOLCHAIN"] = "local"
+    cd "gta-c64/tools/presence-bridge" do
+      system "go", "build", *std_go_args(output: bin/"sleazeburg-presence", ldflags: "-s -w -X main.version=#{version}")
+    end
+  end
+
+  # Optional autostart: brew services start sleazeburg-presence
+  service do
+    run [opt_bin/"sleazeburg-presence"]
+    keep_alive true
+    log_path var/"log/sleazeburg-presence.log"
+    error_log_path var/"log/sleazeburg-presence.log"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/sleazeburg-presence -version")
+    port = free_port
+    pid = spawn bin/"sleazeburg-presence", "-port", port.to_s
+    begin
+      status = ""
+      20.times do
+        sleep 0.5
+        status = `curl -s http://127.0.0.1:#{port}/v1/status`
+        break unless status.empty?
+      end
+      assert_match '"name":"sleazeburg-presence"', status
+    ensure
+      Process.kill("TERM", pid)
+      Process.wait(pid)
+    end
+  end
+end

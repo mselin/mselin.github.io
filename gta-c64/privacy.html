@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy - Sleazeburg 64</title>
+<style>
+html{background:#000}
+body{margin:0 auto;max-width:46rem;padding:1.5rem 1rem 3rem;background:#352879;color:#d5cff5;border:10px solid #6c5eb5;font:16px/1.6 ui-monospace,Menlo,Consolas,monospace}
+h1{font-size:1.4rem;color:#fff;letter-spacing:2px;margin:0 0 .25rem}
+h2{font-size:1.05rem;color:#b8c76f;letter-spacing:1px;margin:2rem 0 .5rem}
+p,ul{margin:.6rem 0}ul{padding-left:1.3rem}li{margin:.3rem 0}
+a{color:#fff}code{color:#9ad284}
+.lead{color:#fff}.small{font-size:.875rem;color:#b6adeb}
+</style></head><body>
+<h1>SLEAZEBURG 64: PRIVACY</h1>
+<p class="small">Last updated 20 November 2026</p>
+<p class="lead">The game collects nothing about you. It has no accounts, no analytics, no advertising and no cookies, and its author never learns who plays it or how.</p>
+<p>The rest of this page explains who else is involved when you play, and exactly what the optional Discord feature sends.</p>
+
+<h2 id="who">WHO THIS COVERS</h2>
+<p>Sleazeburg 64 is a free, open-source browser game made by <a href="https://github.com/mselin">mselin</a>. This page covers the game at <code>https://mselin.github.io/gta-c64/</code>, its optional helper program (the "presence bridge"), and the application named "Sleazeburg 64" on Discord.</p>
+
+<h2 id="game">WHAT THE GAME COLLECTS</h2>
+<p>Nothing. The game is a set of files that your browser downloads and runs. It has no server of its own, so there is nowhere for it to send anything, and it does not try to.</p>
+
+<h2 id="device">WHAT IS KEPT ON YOUR DEVICE</h2>
+<p>Two settings are saved in your browser's local storage so they survive a reload:</p>
+<ul>
+<li>whether you have turned the music on;</li>
+<li>whether you have turned Discord Rich Presence on.</li>
+</ul>
+<p>They never leave your browser. Clearing this site's data in your browser removes them. The game sets no cookies.</p>
+
+<h2 id="others">WHO ELSE SEES A REQUEST FROM YOU</h2>
+<ul>
+<li><strong>GitHub</strong> hosts the game on GitHub Pages. Like any web host, it receives your IP address and details of your browser when the page loads, and handles them under the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub Privacy Statement</a>. The author has no access to those records.</li>
+<li><strong>The High Voltage SID Collection</strong>, only if you turn the music on. Your browser then downloads each tune directly from <code>www.hvsc.c64.org</code>, which sees your IP address and which tune was asked for. Nothing is fetched from there while the music is off.</li>
+</ul>
+<p>The game loads nothing else from other sites: no fonts, no scripts, no trackers.</p>
+
+<h2 id="discord">DISCORD RICH PRESENCE</h2>
+<p>This feature is optional and is off unless you turn it on in the game. It also does nothing unless you have installed and started the helper program yourself.</p>
+<p><strong>What is sent while it is on.</strong> The game tells the helper program, which runs on your own computer, these things and nothing else:</p>
+<ul>
+<li>what you are doing, from a fixed list: loading, on the title screen, roaming, on a job, being chased, flatlined, busted, paused, game over, or won;</li>
+<li>which of the city's five districts you are in;</li>
+<li>whether you are on foot, in a car or swimming;</li>
+<li>your heat level, from 0 to 5.</li>
+</ul>
+<p>It never sends your name, anything you typed, web addresses, or anything that identifies you or your computer.</p>
+<p><strong>Where it goes.</strong> The helper turns those values into one of a fixed set of sentences, such as "Loitering in Gentrifia", and hands them to the Discord app on the same computer, together with the time your session started. Discord then shows them on your profile to whoever is allowed to see your activity under your Discord settings. What Discord does with them is covered by the <a href="https://discord.com/privacy">Discord Privacy Policy</a>.</p>
+<p><strong>Where it does not go.</strong> Nothing is sent to the author or to the site that hosts the game. The feature does not log you in to Discord and uses no Discord password or token, so the game never learns who you are on Discord.</p>
+<p><strong>The helper program</strong> listens only on your own computer and talks only to the Discord app on it. It makes no other network connection, does not update itself and sends no usage data. On Linux, if another presence program has already created a shared folder for the purpose, it keeps one small file there saying that Sleazeburg 64 is currently showing. Its source code is <a href="https://github.com/mselin/mselin.github.io/tree/main/gta-c64/tools/presence-bridge">public</a>.</p>
+<p><strong>Stopping it.</strong> Turn the setting off, close the game's tab or quit the helper, and the line on your profile clears within about half a minute. You can also switch off activity sharing in Discord's own privacy settings.</p>
+
+<h2 id="activity">PLAYING INSIDE DISCORD</h2>
+<p>The game may also be offered inside Discord as an Activity. If you start it there, Discord delivers the game through its own servers, and the <a href="https://discord.com/privacy">Discord Privacy Policy</a> covers what Discord records. The game itself still collects nothing and does not ask Discord who you are.</p>
+
+<h2 id="rights">YOUR DATA AND YOUR RIGHTS</h2>
+<p>Because the author holds no personal data about players, there is nothing for the author to show you, correct or delete. For records held by GitHub, the High Voltage SID Collection or Discord, contact them directly.</p>
+<p>No data is collected from anyone, of any age. The game is a crime satire with cartoon violence and is not aimed at children.</p>
+
+<h2 id="changes">CHANGES AND CONTACT</h2>
+<p>If the game changes in a way that affects this page, the page will be updated and the date at the top changed. Every past version is in the <a href="https://github.com/mselin/mselin.github.io/commits/main/gta-c64/privacy.html">public history</a> of this file.</p>
+<p>Questions: open an issue at <a href="https://github.com/mselin/mselin.github.io/issues">github.com/mselin/mselin.github.io/issues</a>.</p>
+<p class="small"><a href="./">Back to the game</a> &middot; <a href="terms.html">Terms of use</a> &middot; <a href="privacy.html">Privacy</a> &middot; <a href="https://github.com/mselin/mselin.github.io/tree/main/gta-c64">Source code</a></p>
+</body></html>

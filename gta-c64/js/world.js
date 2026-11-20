@@ -69,6 +69,14 @@ export const crossing = (x, y) => ({
   ave: clamp(Math.round((x - 16) / BLK), 0, NB) + 1,
   st: clamp(Math.round((y - 16) / BLK), 0, NB) + 1,
 });
+/** Which district a point is in: the canal down the middle, and a quarter of the city either side of it. */
+export function districtAt(x, y) {
+  const bx = Math.floor(x / BLK),
+    by = Math.floor(y / BLK);
+  if (bx === 4) return 'the_moat';
+  if (bx < 4) return by < 4 ? 'gentrifia' : 'debt_valley';
+  return by < 4 ? 'hoa_heights' : 'crypto_docks';
+}
 /** Where the cult gathers: the middle of the block just south-east of their crossing (a car park, as it happens). */
 export const CULT_SPOT = { x: ((CULT.ave - 1) * PB + 7) * 16, y: ((CULT.st - 1) * PB + 7) * 16 };
 export function genMap() {

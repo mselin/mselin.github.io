@@ -15,6 +15,7 @@ import { endingsLoaded } from './endings.js';
 import { initRadio, radio, radioState, silence } from './radio.js';
 import { initInfo } from './info.js';
 import { initInput } from './input.js';
+import { describe, initPresence, presenceStatus } from './presence.js';
 
 genMap();
 renderMap();
@@ -23,6 +24,7 @@ initWorld();
 initInput();
 initInfo();
 initRadio();
+initPresence();
 
 let last = performance.now();
 function frame(now) {
@@ -55,4 +57,5 @@ window.sleazeburg = {
   radioState,
   silence,
   endingsLoaded,
+  presence: { status: presenceStatus, state: describe },
 };

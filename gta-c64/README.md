@@ -48,6 +48,9 @@ npm test
 | `assets/` | Picture files: the two end screens. |
 | `js/screen.js`, `js/font.js`, `js/sprites.js`, `js/audio.js` | Canvas, bitmap font, sprites, sound effects and the built-in tune. |
 | `js/playlist.js`, `js/radio.js`, `js/info.js` | Playlist parsing, the radio, the information page. |
+| `js/presence.js` | Optional Discord Rich Presence: tells the presence bridge what the game is doing. Off by default. |
+| `terms.html`, `privacy.html` | Terms of use and privacy policy, linked from the game and from the Discord application. |
+| `tools/presence-bridge/` | The presence bridge: a small Go program players can run to show the game on their Discord profile. See its README. |
 | `sidplayer.js` | Bridge between the radio and the SID player. |
 | `usbsid-player/` | USBSID-Player, the WebAssembly SID player. See its README. |
 | `radio/` | The radio playlist. See its README for how to add tunes. |
@@ -55,6 +58,14 @@ npm test
 
 `world.js`, `playlist.js`, `cars.js` and the other game-logic modules do not touch the page when imported,
 which is what lets the unit tests run them in Node.
+
+## Discord Rich Presence
+
+Players can choose to show what they are doing in the game on their Discord profile. A web page cannot talk
+to Discord itself, so this needs the [presence bridge](tools/presence-bridge/), a small program the player runs
+on their own computer. The setting is on the information page and is off by default; until a player switches
+it on, the game makes no request to their computer. The bridge's README covers installing it, what it sends,
+and its [code signing policy](tools/presence-bridge/CODE_SIGNING_POLICY.md).
 
 ## Licence and credits
 

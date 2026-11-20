@@ -85,6 +85,14 @@ export const SHOPS = [
 ];
 /** The numerology cult: which crossing they meet at (counting avenues from the west and streets from the north, from 1) and how many turn up. */
 export const CULT = { ave: 6, st: 7, members: 7 };
+/** The districts of the city: the id used in code and saved data, and the name shown on screen. */
+export const DISTRICTS = {
+  gentrifia: 'GENTRIFIA',
+  debt_valley: 'DEBT VALLEY',
+  hoa_heights: 'HOA HEIGHTS',
+  crypto_docks: 'CRYPTO DOCKS',
+  the_moat: 'THE MOAT',
+};
 export const GOAL = 25000,
   HT = [0, 8, 25, 60, 110, 180];
 export const HEATMSG = [
