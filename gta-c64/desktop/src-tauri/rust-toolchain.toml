@@ -1,5 +1,0 @@
-# The Rust release the app is built and tested with, on every system and in CI.
-[toolchain]
-channel = "1.97.0"
-components = ["rustfmt", "clippy"]
-profile = "minimal"
