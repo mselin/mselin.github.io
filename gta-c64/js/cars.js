@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Car handling, collisions, traffic and police driving, damage and explosions.
-import { BLK, DIRS, GRASS, GRIP, KIND, LOT, NB, PAL, PI, PLAZA, ROAD, WALK, WPX } from './config.js';
+import { BLK, DIRS, GRASS, GRIP, KIND, LOT, NB, PAL, PI, PLAZA, ROAD, WALK } from './config.js';
 import { R, angDiff, clamp, hyp, mod, pick } from './util.js';
 import { decals, footClear, tileAt, wallAt, waterAt } from './world.js';
 import { sfx } from './audio.js';
@@ -23,9 +23,10 @@ export function carHits(c, x, y) {
   }
   return false;
 }
+const BUMP = 35; // hitting something slower than this (pixels a second) does no damage
 function impact(c, spd) {
-  if (spd > 55) {
-    c.hp -= (spd - 55) * 0.14;
+  if (spd > BUMP) {
+    c.hp -= (spd - BUMP) * 0.14;
     if (onScreen(c.x, c.y, 10)) {
       sfx.crash(spd / 300);
       for (let i = 0; i < 4; i++)
@@ -137,7 +138,46 @@ export function flood(c) {
   }
   if (G.job && G.job.car === c) failJob('THE LIMO IS NOW A SUBMARINE');
 }
+/**
+ * Move a car that overlaps a wall to the nearest spot where it fits, looking up to 24 pixels away.
+ * Cars should never end up in a wall; this puts one back if something ever does. False if there is no room.
+ */
+function unstick(c) {
+  for (let r = 1; r <= 24; r++)
+    for (let i = 0; i < 16; i++) {
+      const x = c.x + Math.cos((i * PI) / 8) * r,
+        y = c.y + Math.sin((i * PI) / 8) * r;
+      if (!carHits(c, x, y)) {
+        c.x = x;
+        c.y = y;
+        return true;
+      }
+    }
+  return false;
+}
+/**
+ * A car stopped by a wall one way that only clips its corner slips up to 3 pixels the other way, past the corner,
+ * instead of being held there. Without this, a car whose nose had caught a corner could hardly back away from it.
+ * (ux, uy) is the way it may slip and v its speed that way, which says which side to try first.
+ */
+function slip(c, x, y, ux, uy, v) {
+  const s = v < 0 ? -1 : 1;
+  for (let d = 1; d <= 3; d++)
+    for (const t of [s * d, -s * d])
+      if (!carHits(c, x + ux * t, y + uy * t)) {
+        c.x = x + ux * t;
+        c.y = y + uy * t;
+        return true;
+      }
+  return false;
+}
 export function carPhys(c, thr, steer, dt, hb) {
+  // Walls are never passed through. A car found overlapping one is moved out first; if there is no room nearby
+  // it stays where it is rather than being let through.
+  if (carHits(c, c.x, c.y) && !unstick(c)) {
+    c.vx = c.vy = 0;
+    return;
+  }
   if (c.flooded) {
     // Dead in the water: no engine, no steering, just the last of its momentum.
     const drag = Math.max(0, 1 - 4 * dt);
@@ -157,8 +197,9 @@ export function carPhys(c, thr, steer, dt, hb) {
     fy = Math.sin(c.a);
   const f0 = c.vx * fx + c.vy * fy;
   c.a += steer * 3 * clamp(f0 / 55, -1, 1) * (hb ? 1.3 : 1) * dt;
-  const emb = carHits(c, c.x, c.y);
-  if (c.a !== oa && !emb && carHits(c, c.x, c.y)) c.a = oa;
+  // A turn that would swing the car into a wall does not happen. (Checking for a wall only after turning used to
+  // count the car as already stuck in it, which let it drive straight through.)
+  if (c.a !== oa && carHits(c, c.x, c.y)) c.a = oa;
   fx = Math.cos(c.a);
   fy = Math.sin(c.a);
   let fwd = c.vx * fx + c.vy * fy,
@@ -183,18 +224,19 @@ export function carPhys(c, thr, steer, dt, hb) {
   skid(c, c.slide > 26 || (braking && fwd > 75) || (hb && Math.abs(fwd) > 30) || spin);
   c.vx = fx * fwd - fy * lat;
   c.vy = fy * fwd + fx * lat;
+  // Each way separately, so a car that hits a wall at an angle bounces off it and slides along it.
   const nx = c.x + c.vx * dt;
-  if (!emb && carHits(c, nx, c.y)) {
+  if (!carHits(c, nx, c.y)) c.x = nx;
+  else if (!slip(c, nx, c.y, 0, 1, c.vy)) {
     impact(c, Math.abs(c.vx));
     c.vx *= -0.3;
-  } else c.x = nx;
+  }
   const ny = c.y + c.vy * dt;
-  if (!emb && carHits(c, c.x, ny)) {
+  if (!carHits(c, c.x, ny)) c.y = ny;
+  else if (!slip(c, c.x, ny, 1, 0, c.vx)) {
     impact(c, Math.abs(c.vy));
     c.vy *= -0.3;
-  } else c.y = ny;
-  c.x = clamp(c.x, 8, WPX - 8);
-  c.y = clamp(c.y, 8, WPX - 8);
+  }
   if (wet > 0 && Math.abs(fwd) > 20 && R() < dt * 30 && onScreen(c.x, c.y, 10))
     G.parts.push({
       x: c.x + (R() - 0.5) * 10,
@@ -496,7 +538,7 @@ export function updCars(dt) {
       if (mvA) {
         const x = a.x - nx * best * sh,
           y = a.y - ny * best * sh;
-        if (!carHits(a, x, y) || carHits(a, a.x, a.y)) {
+        if (!carHits(a, x, y)) {
           a.x = x;
           a.y = y;
         }
@@ -504,7 +546,7 @@ export function updCars(dt) {
       if (mvB) {
         const x = b.x + nx * best * sh,
           y = b.y + ny * best * sh;
-        if (!carHits(b, x, y) || carHits(b, b.x, b.y)) {
+        if (!carHits(b, x, y)) {
           b.x = x;
           b.y = y;
         }
