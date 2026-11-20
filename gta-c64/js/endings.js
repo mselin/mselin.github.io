@@ -3,9 +3,10 @@
 // The pictures are bitmap files in assets/. They are 320x150 and use double-wide pixels and the 16 C64 colours,
 // like C64 multicolour mode; a test checks that they stay that way. Only the cigar smoke is drawn by code.
 import { PAL, SW } from './config.js';
-import { TOUCH, g } from './screen.js';
+import { g } from './screen.js';
 import { ctext } from './font.js';
 import { G } from './state.js';
+import { help } from './help.js';
 
 const ART_Y = 18; // the picture sits between a title line and three caption lines
 /** Start loading a picture from assets/. It is fetched once, when the game starts. */
@@ -56,6 +57,5 @@ export function drawEnding(kind) {
     ctext('NO MONEY. NO BAIL. NO LAWYER.', 171, 1);
     ctext('THE SYSTEM WORKS. FOR SOMEBODY.', 180, 15);
   }
-  if (Math.floor(G.clock * 2) & 1)
-    ctext(TOUCH ? 'NEW GAME?  FIRE = YES  CAR = NO' : 'NEW GAME?   Y = YES   N = NO', 191, 13);
+  if (Math.floor(G.clock * 2) & 1) ctext(help().newGame, 191, 13);
 }

@@ -7,9 +7,18 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none
 #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
 canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outline:none}
 #pad{display:none;position:fixed;inset:0;pointer-events:none}
-#pad button{pointer-events:auto;position:absolute;width:56px;height:56px;border:2px solid #959595;background:rgba(68,68,68,.55);color:#fff;font:bold 16px monospace;border-radius:4px;padding:0;touch-action:none}
+#pad button{pointer-events:auto;position:absolute;box-sizing:border-box;width:64px;height:64px;padding:12px;border:2px solid #959595;background:rgba(68,68,68,.55);border-radius:6px;touch-action:none;cursor:pointer}
+#pad button.small{width:44px;height:44px;padding:6px}
+#pad button.big{width:80px;height:80px;padding:14px}
 #pad button.on{background:rgba(108,94,181,.85)}
+#pad button span{display:block;width:100%;height:100%}
+#pad .horn,#pad[data-car="1"] .gun,#pad[data-car="0"] .incar,#pad [hidden]{display:none}
+#pad[data-car="1"] .horn{display:block}
+#rotate{display:none;position:fixed;inset:0;z-index:8;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;box-sizing:border-box;background:rgba(0,0,0,.88);color:#fff;font:bold 22px/1.4 ui-monospace,Menlo,Consolas,monospace;text-align:center;letter-spacing:2px}
+#rotate .small{font-size:14px;font-weight:normal;color:#b6adeb;letter-spacing:0}
 @media (pointer:coarse){#pad{display:block}}
+@media (pointer:coarse) and (orientation:portrait){#rotate{display:flex}}
+#rotate.gone{display:none}
 #ibtn{position:fixed;left:10px;top:10px;width:34px;height:34px;border:2px solid #6c5eb5;background:#352879;color:#fff;font:bold 18px monospace;border-radius:4px;cursor:pointer;z-index:5}
 #info{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:10;align-items:center;justify-content:center;-webkit-user-select:text;user-select:text;touch-action:auto}
 #info.on{display:flex}
@@ -23,21 +32,21 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 #ibox button{font:inherit;background:#6c5eb5;color:#fff;border:2px solid #b6adeb;border-radius:3px;padding:4px 10px;margin:3px 4px 3px 0;cursor:pointer}
 #ibox button:hover,#ibtn:hover{background:#8a7dd0}
 #ibox .small{font-size:13px;color:#b6adeb}
+/* After the #ibtn rule, so that it wins: 44 pixels is the smallest comfortable target for a finger. */
+@media (pointer:coarse){#ibtn{width:44px;height:44px;font-size:22px}}
 </style></head><body>
 <div id="wrap"><canvas id="c" width="384" height="272" tabindex="0" role="img" aria-label="Sleazeburg 64 game screen. Press I for controls and credits."></canvas></div>
 <input id="sidfile" type="file" accept=".sid,.psid,.dat" style="display:none">
-<div id="pad">
-<button data-k="left" style="left:10px;bottom:70px">&lt;</button>
-<button data-k="right" style="left:130px;bottom:70px">&gt;</button>
-<button data-k="up" style="left:70px;bottom:130px">^</button>
-<button data-k="down" style="left:70px;bottom:10px">v</button>
-<button data-k="use" style="right:80px;bottom:30px">CAR</button>
-<button data-k="music" style="right:12px;top:12px;height:36px;width:64px">MUSIC</button>
-<button data-k="esc" style="left:54px;top:10px;height:34px;width:64px">TITLE</button>
-<button data-k="radio" style="right:84px;top:12px;height:36px;width:64px">RADIO</button>
-<button data-k="next" style="right:156px;top:12px;height:36px">NEXT</button>
-<button data-k="fire" style="right:12px;bottom:90px">FIRE</button>
-<button data-k="hb" style="right:80px;bottom:100px">SKID</button>
+<div id="rotate" role="status"><p>TURN YOUR PHONE SIDEWAYS</p><p class="small">Sleazeburg 64 is made to be played in landscape. Tap here to play upright anyway.</p></div>
+<div id="pad" data-car="0">
+<button data-k="esc" data-icon="esc" class="small" aria-label="Back to the title screen" style="left:62px;top:10px"></button>
+<button id="bfull" data-icon="full" class="small" aria-label="Full screen" style="left:62px;top:114px"></button>
+<button data-k="music" data-icon="music" class="small" aria-label="Music on or off" style="left:10px;top:62px"></button>
+<button data-k="radio" data-icon="radio" class="small" aria-label="Next radio station" style="left:62px;top:62px"></button>
+<button data-k="next" data-icon="next" class="small" aria-label="Next tune" style="left:10px;top:114px"></button>
+<button data-k="hb" data-icon="hb" class="incar" aria-label="Handbrake" style="right:24px;bottom:188px"></button>
+<button data-k="use" data-icon="use" aria-label="Get in or out of a car" style="right:24px;bottom:112px"></button>
+<button data-k="fire" class="big" aria-label="Fire, or the horn when in a car" style="right:16px;bottom:20px"><span class="gun" data-icon="fire"></span><span class="horn" data-icon="horn"></span></button>
 </div>
 <button id="ibtn" aria-label="Game information" title="Game information (I)">i</button>
 <div id="info" role="dialog" aria-modal="true" aria-labelledby="ih"><div id="ibox">
@@ -46,7 +55,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 <p class="small">Most jobs point you to where you need to go. One does not: for the cult of 6-7 you have to count streets. Avenues are numbered from the west and streets from the north, starting at 1, and your current crossing is shown next to the timer.</p>
 <p class="small">An original game. Every place, business and official in Sleazeburg is made up.</p>
 <h2>CONTROLS</h2>
-<dl><dt>Arrows / WASD</dt><dd>Walk, drive</dd><dt>Space</dt><dd>Fire or punch on foot, horn in a car</dd><dt>X / Shift</dt><dd>Handbrake, for sliding round corners</dd><dt>E / Enter</dt><dd>Get in or out of a car</dd><dt>M</dt><dd>Music on or off (starts off)</dd><dt>R / N</dt><dd>Next radio station / next tune</dd><dt>F</dt><dd>Sound effects on or off</dd><dt>P</dt><dd>Pause</dd><dt>I</dt><dd>Open or close this page</dd><dt>Esc</dt><dd>Back to the title screen, to just listen to the radio. Your game is kept.</dd></dl>
+<dl><dt>Arrows / WASD</dt><dd>Walk, drive</dd><dt>Touch screen</dt><dd>Hold a finger on the screen and you walk, or drive, towards it. In a car, the further away the finger, the faster you go; hold it behind the car to reverse, or on the car to brake. The buttons fire, get in and out of cars and work the handbrake.</dd><dt>Space</dt><dd>Fire or punch on foot, horn in a car</dd><dt>X / Shift</dt><dd>Handbrake, for sliding round corners</dd><dt>E / Enter</dt><dd>Get in or out of a car</dd><dt>M</dt><dd>Music on or off (starts off)</dd><dt>R / N</dt><dd>Next radio station / next tune</dd><dt>F</dt><dd>Sound effects on or off</dd><dt>P</dt><dd>Pause</dd><dt>I</dt><dd>Open or close this page</dd><dt>Esc</dt><dd>Back to the title screen, to just listen to the radio. Your game is kept.</dd></dl>
 <h2>RADIO</h2>
 <p><button id="bmus"></button><button id="bfx"></button><button id="bst">NEXT STATION</button><button id="bnx">NEXT TUNE</button><button id="bld">PLAY A .SID FILE</button></p>
 <dl id="now"></dl>

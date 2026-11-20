@@ -3,6 +3,7 @@
 import { initAudio, music, tone } from './audio.js';
 import { G, P, msg } from './state.js';
 import { fontSafe, parseStations, shuffle } from './playlist.js';
+import { help } from './help.js';
 
 let engP = null;
 let sidReady = false;
@@ -141,12 +142,7 @@ export function radioStation() {
   G.station = (G.station + 1) % radio.length;
   const st = radio[G.station];
   silence();
-  msg(
-    'RADIO: ' +
-      st.name +
-      (st.tagline ? ' - ' + st.tagline : '') +
-      (G.musicOn ? '' : ' (MUSIC IS OFF - PRESS M)'),
-  );
+  msg('RADIO: ' + st.name + (st.tagline ? ' - ' + st.tagline : '') + (G.musicOn ? '' : help().radioMusicOff));
   tone(900, 400, 0.05, 'square', 0.15);
   radioListener();
 }
