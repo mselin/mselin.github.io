@@ -6,11 +6,17 @@ Bitmap pictures the game loads. Edit them in any paint program and save over the
 |---|---|---|
 | `ending-jail.png` | Game over: arrested with no money | 320 × 150 |
 | `ending-office.png` | Victory: the election is bought | 320 × 150 |
+| `icon-16.png`, `icon-32.png` | The browser tab | 16 × 16, 32 × 32 |
+| `icon-180.png` | A phone's home screen | 180 × 180 |
+
+The icons are drawn by [`tools/make-icons.mjs`](../tools/make-icons.mjs) from the game's own letter shapes
+and colours. Change the script and run `node tools/make-icons.mjs` rather than editing them; the tests check
+the files match it. The rules below are for the end screens.
 
 The end screens add their own title, captions and "New game?" line around the picture, and the victory screen
 draws the cigar smoke over it, rising from about (252, 62).
 
-## Rules for editing
+## Rules for editing the end screens
 
 `npm run test:unit` checks all of these, and says which pixels break them.
 
