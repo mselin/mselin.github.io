@@ -114,6 +114,8 @@ const PRESENCE_TEXT = {
   refused:
     'On, but the helper program turned this game away. It may be a different version from the one this game expects.',
   unavailable: 'On, but the game could not load its own presence settings. Reloading the page may help.',
+  framed:
+    'Off. The game is inside another website, so it will not switch this on: open the game in a tab of its own.',
 };
 const RELAY_OFFER = new Set(['no-bridge', 'relay-silent', 'relay-closed', 'relay-blocked', 'relay-lost']);
 function presenceRender() {

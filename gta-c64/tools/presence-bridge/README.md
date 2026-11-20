@@ -20,16 +20,21 @@ for the game: the game tells it what is happening, and it tells the Discord app 
   reach, and talks to the Discord desktop app on the same computer.
 - **What it does not do.** It makes no other network connection, does not update itself, sends no usage
   data, needs no administrator rights, and does not start with your computer unless you set that up.
-- **Read the source before you run it.** It is in this folder: about 800 lines of Go, standard library
+- **Read the source before you run it.** It is in this folder: about 930 lines of Go, standard library
   only, the 120 lines of the [helper window](relay/), plus tests. [`main.go`](main.go) is the place to start.
 - **Build it yourself, or check the download.** Building from source comes first below. For downloads, check
-  the SHA-256 checksum against the `SHA256SUMS` file published with the release.
+  the SHA-256 checksum against the `SHA256SUMS` file published with the release, and, from 0.2.0, where the
+  file was built: `gh attestation verify <file> --repo mselin/mselin.github.io` checks GitHub's signed record
+  that the release workflow built it from the tagged source.
 - **Downloads are unsigned.** Windows and macOS warn about unsigned programs. The warning appears because
   the file is not signed, not because anything was found in it. See your system's section below.
 - **Only the game's own address may use it.** Other websites are refused. The check is by origin, so it
   allows everything at `https://mselin.github.io` as a whole: every page there belongs to the same owner as
   the game. The bridge also serves one page of its own, the [helper window](#safari-and-the-helper-window)
   for Safari, which other pages cannot embed.
+- **Meant for a computer you do not share.** Any program on the computer can talk to the bridge, including
+  other users' programs on a shared one: they can set your presence to one of the fixed lines, or clear it. And
+  if the bridge is not running, another user's program could take its port, and the game would talk to that.
 - **What appears on your profile is public** to everyone who can see your Discord activity. See
   [what is shown](#what-is-shown).
 - **To stop and remove it**, see [Removing it](#removing-it).
@@ -149,14 +154,18 @@ running while you play. Then, in the game:
 1. Press **I** to open the information page.
 2. Under **Discord Rich Presence**, switch it on. The line underneath says how it is going.
 3. Chrome and Edge ask whether the page may reach devices on your local network: allow it. That is the
-   browser checking before a website talks to a program on your computer.
+   browser checking before a website talks to a program on your computer. The permission is for the whole site,
+   `mselin.github.io`, and for any device on your local network, not only the bridge; you can take it back in
+   the browser's site settings.
 4. In Safari, press **Open the helper window** when the game offers it. See below.
 
 You also need the Discord desktop app running on the same computer, with **Share your activity** switched on
 in Discord's Activity Privacy settings.
 
 Options, for testing: `-port` changes the port (the game always uses 26464), `-allow-origin` adds an origin
-that may use the bridge, `-app-id` sets a different Discord application, `-version` prints the version.
+that may use the bridge, `-app-id` sets a different Discord application, `-version` prints the version. A
+development copy of the game (`npm start`) needs `-allow-origin http://localhost:8064`: only the game's own
+address is allowed otherwise.
 
 ### Safari and the helper window
 
@@ -171,12 +180,17 @@ of its own at `http://127.0.0.1:26464/relay`, and the game offers a button to op
 - The window takes messages only from the game's own address and only from the window that opened it, and
   passes on only the two requests the game makes. The bridge checks those as it checks everything else. No
   other page can embed it, and it loads nothing but its own script and style.
+- The window never asks for a password, a token or a login. A window that does is not this one: close it.
 - Once a browser has needed the window, switching the setting on opens it straight away. Safari may ask
   whether the game may open a pop-up window: allow it.
 
 The window needs version 0.2.0 or later. An older bridge answers it with "404 page not found".
 
 ## Starting it automatically (optional)
+
+A bridge that is always running can be noticed by websites you visit: in Firefox, and in Chrome or Edge if you
+allowed local network access, a page can tell that something answers on port 26464, though it cannot use it.
+If that matters to you, start the bridge only when you play.
 
 - **Linux (systemd):** copy [`packaging/systemd/sleazeburg-presence.service`](packaging/systemd/sleazeburg-presence.service)
   to `~/.config/systemd/user/`, then run `systemctl --user daemon-reload` and

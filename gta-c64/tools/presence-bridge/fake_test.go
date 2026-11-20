@@ -24,6 +24,7 @@ type fakeDiscord struct {
 	dials      int // every attempt to connect, answered or not
 	down       bool
 	conns      []io.Closer
+	refusal    []byte // if set, the handshake is refused with this as the reason: a fake Discord's words
 }
 
 func (f *fakeDiscord) serve(rw io.ReadWriteCloser) {
@@ -49,7 +50,12 @@ func (f *fakeDiscord) serve(rw io.ReadWriteCloser) {
 		case opHandshake:
 			f.mu.Lock()
 			f.handshakes++
+			refusal := f.refusal
 			f.mu.Unlock()
+			if refusal != nil {
+				send(opClose, refusal)
+				return
+			}
 			err = send(opFrame, []byte(`{"cmd":"DISPATCH","evt":"READY"}`))
 		case opPing:
 			err = send(opPong, body)

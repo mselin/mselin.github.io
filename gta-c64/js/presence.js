@@ -45,6 +45,8 @@ const env = {
   clear: (handle) => clearTimeout(handle),
   storage: () => localStorage,
   open: (url, name, features) => window.open(url, name, features),
+  // Inside another site's frame, that site could trick the player into clicking the setting on.
+  framed: () => typeof window !== 'undefined' && window.top !== window,
   listen: (fn) => addEventListener('message', fn),
 };
 /** Replace parts of the environment. For the tests. */
@@ -54,7 +56,8 @@ export function configurePresence(overrides) {
 
 let enabled = false;
 // 'off', 'starting', 'connected', 'no-discord', 'no-app-id', 'no-bridge', 'refused' or 'unavailable', and for
-// the helper window 'relay-waiting', 'relay-silent', 'relay-closed', 'relay-blocked' or 'relay-lost'
+// the helper window 'relay-waiting', 'relay-silent', 'relay-closed', 'relay-blocked' or 'relay-lost', and
+// 'framed' when the game is inside another page and will not switch it on
 let status = 'off';
 let schema = null;
 let timer = null;
@@ -302,6 +305,7 @@ function farewellRelay() {
  * Call it from a click: a browser lets a page open a window only when the player asks for one.
  */
 export function openRelay() {
+  if (env.framed()) return setStatus('framed');
   if (!listening && env.listen) {
     env.listen(fromRelay);
     listening = true;
@@ -330,6 +334,7 @@ export function openRelay() {
 /** Switch the feature on or off and remember the choice. Call it from a click: turning it on is the first
  * time the page reaches for the player's own computer, and the browser may ask their permission. */
 export function setPresence(on) {
+  if (on && env.framed()) return setStatus('framed');
   remember(STORAGE_KEY, on ? '1' : '0');
   // A browser that needed the helper window last time will need it again, and this click may open it.
   if (on && recall(RELAY_KEY) === '1') openRelay();
@@ -357,5 +362,5 @@ export function initPresence() {
       else if (lastSentAt) request('DELETE', null, true).catch(() => {});
     });
   }
-  if (stored === '1') start();
+  if (stored === '1' && !env.framed()) start();
 }

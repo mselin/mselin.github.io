@@ -526,3 +526,21 @@ test('a browser that needed the helper window opens it again when switched on, u
   assert.equal(later.m.presenceStatus().status, 'connected');
   assert.equal(later.stored.sb64presenceRelay, '0');
 });
+
+test('inside another website the setting will not switch on, so that site cannot trick the click', async () => {
+  const r = await rig();
+  r.m.configurePresence({ framed: () => true });
+  r.m.setPresence(true);
+  r.m.openRelay();
+  await r.pass(5);
+  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'framed', relay: false });
+  assert.deepEqual(r.calls, []);
+  assert.deepEqual(r.opened, []);
+  assert.equal(r.stored.sb64presence, undefined);
+  // Nor does a choice made earlier, in a tab of its own, start it there.
+  const earlier = await rig({ stored: { sb64presence: '1' } });
+  earlier.m.configurePresence({ framed: () => true });
+  earlier.m.initPresence();
+  await settle();
+  assert.deepEqual(earlier.calls, []);
+});

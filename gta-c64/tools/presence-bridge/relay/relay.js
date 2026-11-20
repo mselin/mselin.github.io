@@ -50,15 +50,19 @@
     else show('Passing the game on to Discord.');
   }
   let stopped = false;
+  // Whether this window has passed anything on for the game. Any website can open this window and close it
+  // again; only a window the game has used may clear the profile when it goes.
+  let served = false;
   async function stop(why) {
     if (stopped) return;
     stopped = true;
     show(why);
-    try {
-      await forward('DELETE');
-    } catch (e) {
-      /* the bridge has gone too: it clears the profile by itself */
-    }
+    if (served)
+      try {
+        await forward('DELETE');
+      } catch (e) {
+        /* the bridge has gone too: it clears the profile by itself */
+      }
     window.close();
   }
 
@@ -71,6 +75,7 @@
     if (m.method !== 'POST' && m.method !== 'DELETE') return;
     if (m.body != null && (typeof m.body !== 'string' || m.body.length > MAX_BODY)) return;
     let reply;
+    served = true;
     try {
       reply = await forward(m.method, m.method === 'POST' ? m.body : null);
       report(reply);

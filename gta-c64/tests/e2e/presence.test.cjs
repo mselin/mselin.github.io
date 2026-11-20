@@ -351,3 +351,36 @@ test('closing the helper window is noticed and it can be opened again', needsBri
   await game.until((s) => s.presence.status().status === 'connected', 10000);
   game.errors = [];
 });
+
+// Any website can open the helper window and then let go of it. That used to make the window clear the profile
+// as it closed; now only a window the game has used may.
+test(
+  'a helper window that another website opens and drops does not clear the presence',
+  needsBridge,
+  async () => {
+    const { activities, until, log } = await realBridge();
+    await game.press('Space');
+    await game.until((s) => s.G.screen === 'title');
+    await openInfo();
+    await game.page.click('#bdrp');
+    await game.until((s) => s.presence.status().status === 'connected', 10000);
+    await until('Discord should be shown the title screen', () => activities.length === 1);
+
+    // Another site: the same test server under another name is another origin, and not an allowed one.
+    const other = await game.page.context().newPage();
+    const here = new URL(game.page.url());
+    here.hostname = here.hostname === 'localhost' ? '127.0.0.1' : 'localhost';
+    await other.goto(here.href);
+    const [win] = await Promise.all([
+      game.page.context().waitForEvent('page'),
+      other.evaluate((url) => window.open(url, '_blank'), BRIDGE + '/relay'),
+    ]);
+    await win.waitForLoadState();
+    const closed = win.waitForEvent('close');
+    await other.close();
+    await closed; // the window notices its opener has gone and closes
+    await game.wait(1500);
+    assert.notEqual(activities.at(-1), null, 'the profile was cleared. Bridge log:\n' + log());
+    assert.doesNotMatch(log(), /session ended/);
+  },
+);

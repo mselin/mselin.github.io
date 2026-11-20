@@ -12,8 +12,9 @@ import (
 	"strings"
 )
 
-// The game's own address, plus where the game is served during development (npm start).
-var defaultOrigins = []string{"https://mselin.github.io", "http://localhost:8064", "http://127.0.0.1:8064"}
+// The game's own address. Anywhere else, such as a development copy (npm start serves it at
+// http://localhost:8064), has to be allowed with -allow-origin.
+var defaultOrigins = []string{"https://mselin.github.io"}
 
 // The helper window, for browsers that will not let the game's https page reach http://127.0.0.1 (Safari).
 // The game opens it at /relay and talks to it with postMessage; it passes the game's requests on from here.
@@ -46,6 +47,9 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "wrong host", http.StatusForbidden)
 		return
 	}
+	// Nothing the bridge answers is to be cached, or read as anything but what it says it is.
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Cache-Control", "no-store")
 	origin := r.Header.Get("Origin")
 	// The bridge's own pages (the helper window) may use it too: only the bridge can serve a page there.
 	self := origin == fmt.Sprintf("http://127.0.0.1:%d", s.port) || origin == fmt.Sprintf("http://localhost:%d", s.port)

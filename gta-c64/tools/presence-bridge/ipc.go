@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -110,7 +111,7 @@ func (c *discordConn) handshake(appID string) error {
 		return err
 	}
 	if op != opFrame {
-		return fmt.Errorf("Discord refused the application id: %s", reply)
+		return fmt.Errorf("Discord refused the application id: %s", brief(reply))
 	}
 	return nil
 }
@@ -143,9 +144,19 @@ func (c *discordConn) setActivity(a *Activity, start time.Time, nonce string) er
 		Evt string `json:"evt"`
 	}
 	if op != opFrame || json.Unmarshal(reply, &r) != nil || r.Evt == "ERROR" {
-		return fmt.Errorf("Discord rejected the activity: %s", reply)
+		return fmt.Errorf("Discord rejected the activity: %s", brief(reply))
 	}
 	return nil
+}
+
+// brief quotes the start of what came back from the other end, for the log. Whatever is on the other end of
+// the socket or pipe may not be Discord, so its words are kept short and their control characters escaped.
+func brief(reply []byte) string {
+	const most = 200
+	if len(reply) > most {
+		return strconv.Quote(string(reply[:most])) + "..."
+	}
+	return strconv.Quote(string(reply))
 }
 
 func (c *discordConn) ping() error {

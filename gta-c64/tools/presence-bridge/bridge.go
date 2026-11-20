@@ -19,6 +19,13 @@ const (
 	pingEvery        = 10 * time.Second // how often to check Discord is still there
 	claimPriority    = 30               // see claim()
 	redialEvery      = 5 * time.Second  // while Discord cannot be reached
+	// Every send to Discord counts against these, clears included, so that showing and clearing in turn
+	// cannot send as fast as anyone asks.
+	sendBurst  = 5
+	sendWindow = 20 * time.Second
+	// Session starts and ends are logged up to logBurst in any logWindow; past that only counted.
+	logBurst  = 6
+	logWindow = 30 * time.Second
 )
 
 // Bridge holds one play session and keeps Discord in step with it.
@@ -48,7 +55,44 @@ type Bridge struct {
 	downLogged bool
 	lastDial   time.Time
 	nonce      int
-	claimUntil time.Time // when the claim file last written expires
+	claimUntil time.Time   // when the claim file last written expires
+	sends      []time.Time // when the recent sends to Discord went, for sendBurst
+	logged     []time.Time // when the recent session starts and ends were logged, for logBurst
+	unlogged   int         // starts and ends not logged since
+}
+
+// sessionLog logs a session starting or ending. Past logBurst in a logWindow it only counts them: a program
+// that starts and ends sessions in a loop would otherwise fill the log.
+func (b *Bridge) sessionLog(line string) {
+	now := b.now()
+	recent := b.logged[:0]
+	for _, t := range b.logged {
+		if now.Sub(t) < logWindow {
+			recent = append(recent, t)
+		}
+	}
+	b.logged = recent
+	if len(b.logged) >= logBurst {
+		b.unlogged++
+		return
+	}
+	if b.unlogged > 0 {
+		line = fmt.Sprintf("%s (and %d more starts and ends not logged)", line, b.unlogged)
+	}
+	b.logged, b.unlogged = append(b.logged, now), 0
+	b.logf("%s", line)
+}
+
+// mayAlsoSend reports whether one more send to Discord fits in sendBurst per sendWindow.
+func (b *Bridge) mayAlsoSend(now time.Time) bool {
+	recent := b.sends[:0]
+	for _, t := range b.sends {
+		if now.Sub(t) < sendWindow {
+			recent = append(recent, t)
+		}
+	}
+	b.sends = recent
+	return len(b.sends) < sendBurst
 }
 
 // Update takes a state from the game. It also counts as a heartbeat.
@@ -60,7 +104,7 @@ func (b *Bridge) Update(st State) {
 	if !b.active || resumed {
 		b.active, b.hidden, b.start, b.pick = true, false, now, b.random()
 		b.pausedSince = time.Time{}
-		b.logf("session started")
+		b.sessionLog("session started")
 	}
 	if st.Mode != b.state.Mode {
 		b.pick = b.random()
@@ -132,7 +176,7 @@ func (b *Bridge) end(why string) {
 		return
 	}
 	b.active, b.hidden, b.state = false, false, State{}
-	b.logf("session ended: %s", why)
+	b.sessionLog("session ended: " + why)
 	b.flush()
 }
 
@@ -193,6 +237,10 @@ func (b *Bridge) flush() {
 			return
 		}
 	}
+	if !b.mayAlsoSend(now) {
+		return // held back: a later tick sends whatever is wanted by then
+	}
+	b.sends = append(b.sends, now)
 	b.nonce++
 	if err := b.conn.setActivity(want, b.start, fmt.Sprint(b.nonce)); err != nil {
 		b.lost(err)
@@ -225,10 +273,22 @@ func (b *Bridge) claim(showing bool) {
 	if b.claimUntil.Sub(now) > 30*time.Second {
 		return // still fresh: no need to touch the disk every second
 	}
-	if info, err := os.Stat(b.claimDir); err != nil || !info.IsDir() {
+	// Only in a directory of this user's that no one else can write in, so that the file cannot have been
+	// swapped for a link to somewhere else.
+	if !privateDir(b.claimDir) {
 		return
 	}
 	b.claimUntil = now.Add(time.Minute)
 	body, _ := json.Marshal(map[string]int64{"priority": claimPriority, "expires": b.claimUntil.Unix()})
-	os.WriteFile(file, body, 0o600)
+	// Written beside it and renamed into place: a rename replaces whatever is at the name, a link included,
+	// rather than writing through it.
+	tmp, err := os.CreateTemp(b.claimDir, ".sleazeburg-64.claim-*")
+	if err != nil {
+		return
+	}
+	_, werr := tmp.Write(body)
+	cerr := tmp.Close()
+	if werr != nil || cerr != nil || os.Rename(tmp.Name(), file) != nil {
+		os.Remove(tmp.Name())
+	}
 }

@@ -27,10 +27,12 @@ Everything below has **not** been checked against real Discord.
 - [ ] From `https://mselin.github.io/gta-c64/` in Chrome, switching the setting on shows one permission
       prompt. Allow makes it work; Block leaves a clear message in the game.
 - [ ] Firefox: does the setting connect? Write down what happens.
+- [ ] The systemd unit starts with its restrictions, and `systemd-analyze --user security sleazeburg-presence`
+      reports no surprises.
 
 ## Windows (tester)
 
-- [ ] The download's SHA-256 matches `SHA256SUMS`.
+- [ ] The download's SHA-256 matches `SHA256SUMS`, and `gh attestation verify` accepts it (from 0.2.0).
 - [ ] The warning Windows shows for the unsigned file matches the README.
 - [ ] The file's Properties → Details show "Sleazeburg 64 presence bridge" and the release version.
 - [ ] It starts without administrator rights and finds the running Discord app.

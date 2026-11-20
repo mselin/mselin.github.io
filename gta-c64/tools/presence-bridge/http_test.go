@@ -27,7 +27,7 @@ func (r *rig) listenWith(origins []string) string {
 		r.t.Fatal(err)
 	}
 	port := l.Addr().(*net.TCPAddr).Port
-	srv := &http.Server{Handler: &server{bridge: r.b, port: port, origins: origins}}
+	srv := newHTTPServer(&server{bridge: r.b, port: port, origins: origins})
 	go srv.Serve(l)
 	r.t.Cleanup(func() { srv.Close() })
 	return fmt.Sprintf("http://127.0.0.1:%d", port)
@@ -154,8 +154,15 @@ func TestPreflightAndStatus(t *testing.T) {
 	if h.Get("Access-Control-Allow-Private-Network") != "" {
 		t.Error("unexpected Private Network Access header")
 	}
-	for _, origin := range []string{gameOrigin, "http://localhost:8064", ""} {
-		res, body := do(t, request{method: "GET", url: base + "/v1/status", origin: origin})
+	// The game, and a development copy allowed with -allow-origin, may read it; so may curl, with no Origin.
+	dev := r.listenWith([]string{gameOrigin, "http://localhost:8064"})
+	for _, q := range []request{
+		{method: "GET", url: base + "/v1/status", origin: gameOrigin},
+		{method: "GET", url: dev + "/v1/status", origin: "http://localhost:8064"},
+		{method: "GET", url: base + "/v1/status"},
+	} {
+		origin := q.origin
+		res, body := do(t, q)
 		if res.StatusCode != 200 || !strings.Contains(body, `"name":"sleazeburg-presence"`) || !strings.Contains(body, `"showing":false`) {
 			t.Errorf("status for origin %q: %d %s", origin, res.StatusCode, body)
 		}
@@ -197,7 +204,7 @@ func TestTheHelperWindowIsServedLockedDown(t *testing.T) {
 	if res.Header.Get("Access-Control-Allow-Origin") != "" {
 		t.Error("the window's page is not for other pages to read")
 	}
-	if !strings.Contains(body, `data-origins="https://mselin.github.io http://localhost:8064 http://127.0.0.1:8064"`) {
+	if !strings.Contains(body, `data-origins="https://mselin.github.io"`) {
 		t.Errorf("the page does not list the game's addresses:\n%s", body)
 	}
 	if !strings.Contains(body, `src="relay.js"`) || !strings.Contains(body, `href="relay.css"`) {
