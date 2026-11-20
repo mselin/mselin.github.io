@@ -59,6 +59,9 @@ export const G = {
 };
 export const K = {},
   edge = {};
+/** Where a finger is held on the game screen, in screen pixels (0-319 across, 0-199 down), or null.
+ * Set by input.js; on a touch screen it steers the player instead of the arrow keys. */
+export const touch = { at: null };
 export const P = freshPlayer();
 /** Put the game and the player back to how a new game starts. Sound settings and the radio are left alone. */
 export function resetState() {

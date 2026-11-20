@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // The player on foot and at the wheel: movement, weapons, getting in and out of cars, dying and getting arrested.
 import { DIRS, JACK, KIND } from './config.js';
-import { hyp, pick } from './util.js';
+import { angDiff, clamp, hyp, pick } from './util.js';
 import { COPS, HOSP, footClear, waterAt } from './world.js';
 import { noise, sfx } from './audio.js';
-import { G, K, P, bigText, edge, msg } from './state.js';
+import { G, K, P, bigText, edge, msg, touch } from './state.js';
 import { mkPed } from './entities.js';
 import { crime } from './heat.js';
 import { carPhys, sidePos } from './cars.js';
@@ -115,12 +115,58 @@ function exitCar() {
 const footHits = (x, y) => !footClear(x, y);
 export const WALK_SPEED = 58,
   SWIM_SPEED = 22;
+
+// ---------- touch steering ----------
+// On a touch screen the player holds a finger on the screen and the player character heads for it.
+const WALK_DEADZONE = 6; // a finger this close to the player means stand still
+const BRAKE_RADIUS = 16; // a finger on the car means stop
+const FULL_THROTTLE_AT = 50; // a finger this far ahead or more means flat out (a phone screen is not tall)
+const BEHIND = 2.3; // radians: further round than this, the finger is behind the car
+
+/** The point in the city a held finger points at, or null. */
+export const touchTarget = () => (touch.at ? { x: G.camX + touch.at.x, y: G.camY + touch.at.y } : null);
+
+/** On foot: the direction to walk in to reach (tx, ty), as a unit vector, or null to stand still. */
+export function walkToward(px, py, tx, ty) {
+  const dx = tx - px,
+    dy = ty - py,
+    d = hyp(dx, dy);
+  return d < WALK_DEADZONE ? null : { dx: dx / d, dy: dy / d };
+}
+
+/**
+ * In a car: throttle (-1 to 1) and steering (-1 to 1) that take the car towards (tx, ty).
+ * Ahead: drive at it, faster the further away it is, easing off in tight turns.
+ * Behind: brake, then reverse, swinging the tail round towards it. On the car itself: brake.
+ */
+export function driveToward(c, tx, ty) {
+  const dx = tx - c.x,
+    dy = ty - c.y,
+    d = hyp(dx, dy),
+    fwd = c.vx * Math.cos(c.a) + c.vy * Math.sin(c.a);
+  if (d < BRAKE_RADIUS) return { thr: fwd > 5 ? -1 : fwd < -5 ? 1 : 0, steer: 0 };
+  const want = Math.atan2(dy, dx),
+    diff = angDiff(want, c.a);
+  if (Math.abs(diff) > BEHIND) {
+    // Going forward still: brake in a straight line first.
+    if (fwd > 5) return { thr: -1, steer: 0 };
+    // Reversing turns the car the other way, so steer against the tail's error.
+    return { thr: -1, steer: -clamp(angDiff(want + Math.PI, c.a) * 2, -1, 1) };
+  }
+  const push = clamp((d - BRAKE_RADIUS) / (FULL_THROTTLE_AT - BRAKE_RADIUS), 0.3, 1);
+  return { thr: Math.abs(diff) > 1.2 ? Math.min(push, 0.4) : push, steer: clamp(diff * 2.5, -1, 1) };
+}
+
 export function updPlayer(dt) {
   if (G.screen !== 'play') return;
   P.hitT -= dt;
   const c = P.car;
   if (c) {
-    carPhys(c, (K.up ? 1 : 0) - (K.down ? 1 : 0), (K.right ? 1 : 0) - (K.left ? 1 : 0), dt, !!K.hb);
+    const aim = touchTarget(),
+      ctl = aim
+        ? driveToward(c, aim.x, aim.y)
+        : { thr: (K.up ? 1 : 0) - (K.down ? 1 : 0), steer: (K.right ? 1 : 0) - (K.left ? 1 : 0) };
+    carPhys(c, ctl.thr, ctl.steer, dt, !!K.hb);
     if (c.sk) {
       skidT -= dt;
       if (skidT <= 0) {
@@ -147,6 +193,12 @@ export function updPlayer(dt) {
     P.swim = swim;
     let dx = (K.right ? 1 : 0) - (K.left ? 1 : 0),
       dy = (K.down ? 1 : 0) - (K.up ? 1 : 0);
+    const aim = touchTarget();
+    if (aim) {
+      const way = walkToward(P.x, P.y, aim.x, aim.y);
+      dx = way ? way.dx : 0;
+      dy = way ? way.dy : 0;
+    }
     if (dx || dy) {
       const l = hyp(dx, dy);
       dx /= l;

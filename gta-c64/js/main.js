@@ -4,7 +4,7 @@ import { KIND } from './config.js';
 import { cv } from './screen.js';
 import { genMap } from './world.js';
 import { renderMap } from './worldview.js';
-import { G, K, P, edge } from './state.js';
+import { G, K, P, edge, touch } from './state.js';
 import { mkCar } from './entities.js';
 import { crime } from './heat.js';
 import { passJob, startJob } from './missions.js';
@@ -14,7 +14,7 @@ import { draw } from './render.js';
 import { endingsLoaded } from './endings.js';
 import { initRadio, radio, radioState, silence } from './radio.js';
 import { initInfo } from './info.js';
-import { initInput } from './input.js';
+import { initInput, syncPad } from './input.js';
 import { describe, initPresence, presenceStatus } from './presence.js';
 
 genMap();
@@ -36,6 +36,7 @@ function frame(now) {
     console.error(e);
   }
   for (const k in edge) delete edge[k];
+  syncPad();
   draw();
   requestAnimationFrame(frame);
 }
@@ -58,4 +59,5 @@ window.sleazeburg = {
   silence,
   endingsLoaded,
   presence: { status: presenceStatus, state: describe },
+  touch,
 };

@@ -45,6 +45,7 @@ npm test
 | `js/heat.js`, `js/missions.js`, `js/spawner.js`, `js/items.js` | Wanted level, jobs, populating the streets, bullets and pickups. |
 | `js/game.js`, `js/render.js`, `js/input.js` | Per-frame update, drawing, keyboard and touch. |
 | `js/endings.js` | The game-over and victory screens. |
+| `js/icons.js` | Pixel-art icons for the touch-screen buttons. |
 | `assets/` | Picture files: the two end screens. |
 | `js/screen.js`, `js/font.js`, `js/sprites.js`, `js/audio.js` | Canvas, bitmap font, sprites, sound effects and the built-in tune. |
 | `js/playlist.js`, `js/radio.js`, `js/info.js` | Playlist parsing, the radio, the information page. |

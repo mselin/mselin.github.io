@@ -7,7 +7,7 @@ import { ctext, text } from './font.js';
 import { ARW, carSpr, pedSpr } from './sprites.js';
 import { CHOP, JOBPTS, PAINT, crossing, waterAt } from './world.js';
 import { mapC } from './worldview.js';
-import { G, P, onScreen, ppos } from './state.js';
+import { G, P, onScreen, ppos, touch } from './state.js';
 import { npText, radio, radioAudible } from './radio.js';
 import { drawEnding } from './endings.js';
 
@@ -163,6 +163,17 @@ function drawWorld() {
     ctext('RETURN TO TITLE SCREEN?', 74, 1);
     ctext(TOUCH ? 'FIRE = YES    CAR = NO' : 'Y = YES    N = NO', 92, 7);
   }
+  // Where a finger is steering to: a small cross, so it is clear what the player is heading for.
+  if (touch.at && touch.at.y < VH) {
+    const x = Math.round(touch.at.x),
+      y = Math.round(touch.at.y);
+    g.fillStyle = PAL[0];
+    g.fillRect(x - 5, y - 1, 11, 3);
+    g.fillRect(x - 1, y - 5, 3, 11);
+    g.fillStyle = PAL[7];
+    g.fillRect(x - 4, y, 9, 1);
+    g.fillRect(x, y - 4, 1, 9);
+  }
   // panel
   g.fillStyle = PAL[0];
   g.fillRect(0, VH, SW, SH - VH);
@@ -245,17 +256,27 @@ function drawTitle() {
   text('64', 264, 58, 7);
   ctext('A TOTALLY ORIGINAL CRIME SATIRE', 86, 15);
   ctext('8 BITS. 16 COLOURS. 0 SCRUPLES.', 96, 12);
-  text('ARROWS / WASD   WALK - DRIVE', 48, 116, 3);
-  text('SPACE           FIRE - HORN', 48, 126, 3);
-  text('E / ENTER       "BORROW" CAR', 48, 136, 3);
-  text('P PAUSE         I INFO - CREDITS', 48, 146, 3);
-  text('M MUSIC ON/OFF  R STATION  N NEXT', 48, 156, 14);
+  if (TOUCH) {
+    text('HOLD A FINGER   WALK OR DRIVE', 48, 116, 3);
+    text('ON THE SCREEN   TOWARDS IT', 48, 126, 3);
+    text('GUN BUTTON      FIRE - HORN', 48, 136, 3);
+    text('CAR BUTTON      "BORROW" CAR', 48, 146, 3);
+    text('I BUTTON        INFO - CREDITS', 48, 156, 14);
+  } else {
+    text('ARROWS / WASD   WALK - DRIVE', 48, 116, 3);
+    text('SPACE           FIRE - HORN', 48, 126, 3);
+    text('E / ENTER       "BORROW" CAR', 48, 136, 3);
+    text('P PAUSE         I INFO - CREDITS', 48, 146, 3);
+    text('M MUSIC ON/OFF  R STATION  N NEXT', 48, 156, 14);
+  }
   {
     const t = G.musicOn
       ? radioAudible()
         ? 'NOW PLAYING: ' + npText()
         : 'TUNING IN ...'
-      : 'MUSIC IS OFF - PRESS M TO TURN IT ON';
+      : TOUCH
+        ? 'MUSIC IS OFF - TAP THE NOTE BUTTON'
+        : 'MUSIC IS OFF - PRESS M TO TURN IT ON';
     if (t.length <= 40) ctext(t, 166, G.musicOn ? 7 : 12);
     else {
       const u = t + '     ',
@@ -265,7 +286,8 @@ function drawTitle() {
       text(u, w - o, 166, 7);
     }
   }
-  if (Math.floor(G.clock * 2) & 1) ctext('PRESS FIRE TO COMMIT CRIMES', 176, 1);
+  if (Math.floor(G.clock * 2) & 1)
+    ctext(TOUCH ? 'TAP THE SCREEN TO COMMIT CRIMES' : 'PRESS FIRE TO COMMIT CRIMES', 176, 1);
   const off = Math.floor(G.clock * 60) % (SCROLL.length * 8);
   text(SCROLL, -off, 188, 13);
   if (off > SCROLL.length * 8 - SW) text(SCROLL, SCROLL.length * 8 - off, 188, 13);

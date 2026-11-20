@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Shared set-up for the browser tests: a local server, a headless Chromium page, and a stand-in for HVSC.
-const { chromium } = require('playwright');
+const { chromium, devices } = require('playwright');
 const { serve } = require('../server.cjs');
 
 /**
@@ -32,14 +32,18 @@ function testTune(title = 'Test Tune', author = 'Nobody', released = '2026 Tests
 /**
  * Open the game in a fresh page.
  * Requests to HVSC are answered locally with the test tune and counted in `game.hvscRequests`.
- * `options.browserArgs` adds Chromium command-line switches.
+ * `options.browserArgs` adds Chromium command-line switches; `options.device` emulates a phone or tablet.
  */
 async function openGame(options = {}) {
   const server = await serve(0);
   const browser = await chromium.launch({
     args: ['--autoplay-policy=no-user-gesture-required', ...(options.browserArgs || [])],
   });
-  const page = await browser.newPage({ viewport: { width: 960, height: 680 } });
+  // options.device names a phone or tablet from Playwright's list, for the touch-screen tests.
+  const context = await browser.newContext(
+    options.device ? devices[options.device] : { viewport: { width: 960, height: 680 } },
+  );
+  const page = await context.newPage();
   const game = { page, errors: [], hvscRequests: [] };
   page.on('pageerror', (e) => game.errors.push(e.message));
   page.on('console', (m) => {
