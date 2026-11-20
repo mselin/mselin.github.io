@@ -144,12 +144,52 @@ jobs:
           brew test local/ci/sleazeburg-presence
           sleazeburg-presence -version
 
+  desktop:
+    name: Desktop app on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: gta-c64/desktop/src-tauri
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Libraries the web view needs
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
+            libayatana-appindicator3-dev libxdo-dev libssl-dev xvfb
+      # The Rust release is pinned in rust-toolchain.toml; rustup fetches it on first use.
+      - name: Stage the game for the app
+        run: node ../stage.mjs
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - name: Build the app
+        run: cargo build --locked
+      # The whole path: the game loads in WebKitGTK, the page calls the app, and the app reaches a stand-in
+      # for Discord.
+      - name: Smoke test in the real web view
+        if: runner.os == 'Linux'
+        working-directory: gta-c64/desktop
+        run: xvfb-run -a node smoke.cjs src-tauri/target/debug/sleazeburg-64
+
   # The one check that branch protection requires, so jobs can be added or renamed
   # above without touching the repository settings.
   ok:
     name: All checks passed
     if: always()
-    needs: [site, game, bridge, bridge-reproducible, homebrew]
+    needs: [site, game, bridge, bridge-reproducible, homebrew, desktop]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

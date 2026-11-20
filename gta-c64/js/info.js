@@ -120,7 +120,9 @@ const PRESENCE_TEXT = {
 const RELAY_OFFER = new Set(['no-bridge', 'relay-silent', 'relay-closed', 'relay-blocked', 'relay-lost']);
 function presenceRender() {
   if (!G.infoOpen) return;
-  const { enabled, status, relay } = presenceStatus();
+  const { enabled, status, relay, desktop } = presenceStatus();
+  // In the desktop app nothing else needs installing.
+  $('drphelper').hidden = desktop;
   $('bdrp').textContent = 'DISCORD RICH PRESENCE: ' + (enabled ? 'ON' : 'OFF');
   const line = $('drpstat');
   line.textContent = PRESENCE_TEXT[status] || '';

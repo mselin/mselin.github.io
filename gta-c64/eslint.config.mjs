@@ -1,7 +1,18 @@
 import globals from 'globals';
 
 export default [
-  { ignores: ['usbsid-player/**', 'node_modules/**'] },
+  { ignores: ['usbsid-player/**', 'node_modules/**', 'desktop/dist/**', 'desktop/node_modules/**', 'desktop/src-tauri/**'] },
+  {
+    // The desktop app's build and test scripts, run with Node.
+    files: ['desktop/*.mjs'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: globals.node },
+    rules: { 'no-undef': 'error' },
+  },
+  {
+    files: ['desktop/*.cjs'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: globals.node },
+    rules: { 'no-undef': 'error' },
+  },
   {
     files: ['js/**/*.js', 'sidplayer.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: globals.browser },
