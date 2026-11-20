@@ -204,6 +204,9 @@ func TestTheVariantIsKeptForAsLongAsTheModeLasts(t *testing.T) {
 }
 
 func TestClaimFile(t *testing.T) {
+	if goos == "windows" {
+		t.Skip("the claim file is a Linux convention: the bridge never writes one on Windows")
+	}
 	dir := filepath.Join(t.TempDir(), "discord-rpc")
 	file := filepath.Join(dir, "sleazeburg-64.claim")
 	r := newRig(t)
