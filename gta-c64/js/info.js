@@ -15,7 +15,7 @@ import {
   setMusic,
 } from './radio.js';
 
-import { onPresenceChange, presenceStatus, setPresence } from './presence.js';
+import { onPresenceChange, openRelay, presenceStatus, setPresence } from './presence.js';
 
 const $ = (id) => document.getElementById(id),
   el = (tag, txt) => {
@@ -100,18 +100,33 @@ const PRESENCE_TEXT = {
     'On. The helper program is running, but it cannot reach Discord. Is the Discord desktop app open on this computer?',
   'no-app-id': 'On, but the helper program has no Discord application ID set, so nothing is shown.',
   'no-bridge':
-    "On, but the helper program was not found. It is optional, and you install and run it yourself. If it is running, your browser may be stopping this page from reaching it: allow this site to access devices on your local network in the browser's site settings.",
+    "On, but the helper program was not found. It is optional, and you install and run it yourself. If it is running, your browser may be stopping this page from reaching it. Safari always does: open the helper window, which passes the game on to it. In Chrome or Edge, allow this site to access devices on your local network in the browser's site settings.",
+  'relay-waiting':
+    'On: opening the helper window ... If the window says it cannot connect, the helper program is not running.',
+  'relay-silent':
+    'On, but the helper window has not answered. If it shows an error, the helper program is not running, or it is older than version 0.2.0, the first with the helper window.',
+  'relay-closed':
+    'On, but the helper window was closed. Open it again to carry on showing the game on Discord.',
+  'relay-blocked':
+    'On, but the browser did not let the game open the helper window. Allow pop-up windows for this site, then try again.',
+  'relay-lost':
+    'On, but the helper program has stopped answering the helper window. Start it again, then open the window again.',
   refused:
     'On, but the helper program turned this game away. It may be a different version from the one this game expects.',
   unavailable: 'On, but the game could not load its own presence settings. Reloading the page may help.',
 };
+const RELAY_OFFER = new Set(['no-bridge', 'relay-silent', 'relay-closed', 'relay-blocked', 'relay-lost']);
 function presenceRender() {
   if (!G.infoOpen) return;
-  const { enabled, status } = presenceStatus();
+  const { enabled, status, relay } = presenceStatus();
   $('bdrp').textContent = 'DISCORD RICH PRESENCE: ' + (enabled ? 'ON' : 'OFF');
   const line = $('drpstat');
   line.textContent = PRESENCE_TEXT[status] || '';
-  if (status === 'no-bridge' || status === 'refused' || status === 'no-app-id') {
+  if (relay && (status === 'connected' || status === 'no-discord'))
+    line.append(' This goes through the helper window: keep it open while you play.');
+  // The way to the bridge for browsers that will not let the page reach it, offered whenever it is not reached.
+  $('bdrpwin').hidden = !enabled || !RELAY_OFFER.has(status);
+  if (status === 'no-bridge' || status === 'refused' || status === 'no-app-id' || status === 'relay-silent') {
     const a = el('a', 'How to set it up');
     a.href = BRIDGE_HELP;
     a.target = '_blank';
@@ -151,6 +166,8 @@ export function initInfo() {
   // Turning this on is the first time the page reaches for the player's own computer, so it only ever
   // happens from this click.
   $('bdrp').addEventListener('click', () => setPresence(!presenceStatus().enabled));
+  // A browser lets a page open a window only from a click, so this button is the only way it opens.
+  $('bdrpwin').addEventListener('click', openRelay);
   onPresenceChange(presenceRender);
   onRadioChange(infoRender);
 }

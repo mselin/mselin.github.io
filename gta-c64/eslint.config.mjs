@@ -8,6 +8,12 @@ export default [
     rules: { 'no-undef': 'error', 'no-unused-vars': ['warn', { caughtErrors: 'none', argsIgnorePattern: '^_' }] },
   },
   {
+    // The bridge's helper window: a classic script in its own page.
+    files: ['tools/presence-bridge/relay/*.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: globals.browser },
+    rules: { 'no-undef': 'error', 'no-unused-vars': ['warn', { caughtErrors: 'none' }] },
+  },
+  {
     files: ['tests/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: globals.node },
     rules: { 'no-undef': 'error' },

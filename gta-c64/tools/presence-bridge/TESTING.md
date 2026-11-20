@@ -45,7 +45,9 @@ Everything below has **not** been checked against real Discord.
 - [ ] It starts without administrator rights and finds the running Discord app.
 - [ ] With the setting on, the presence shows, follows the game and clears when the tab closes or the bridge
       quits.
-- [ ] Safari: does the setting connect? Write down what happens.
+- [ ] Safari: the setting says the helper program was not found and offers the helper window; the window
+      opens, the presence shows and follows the game, and closing the window clears it.
+- [ ] Firefox and Chrome connect directly, without the helper window.
 - [ ] `brew uninstall` and `brew untap` leave nothing behind.
 
 Until a system's list has passed, its release notes say that real Discord and the system warnings are
