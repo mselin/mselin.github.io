@@ -14,7 +14,11 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 #pad button span{display:block;width:100%;height:100%}
 #pad .horn,#pad[data-car="1"] .gun,#pad[data-car="0"] .incar,#pad [hidden]{display:none}
 #pad[data-car="1"] .horn{display:block}
-@media (pointer:coarse){#pad{display:block}#ibtn{width:44px;height:44px;font-size:22px}}
+#rotate{display:none;position:fixed;inset:0;z-index:8;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;box-sizing:border-box;background:rgba(0,0,0,.88);color:#fff;font:bold 22px/1.4 ui-monospace,Menlo,Consolas,monospace;text-align:center;letter-spacing:2px}
+#rotate .small{font-size:14px;font-weight:normal;color:#b6adeb;letter-spacing:0}
+@media (pointer:coarse){#pad{display:block}}
+@media (pointer:coarse) and (orientation:portrait){#rotate{display:flex}}
+#rotate.gone{display:none}
 #ibtn{position:fixed;left:10px;top:10px;width:34px;height:34px;border:2px solid #6c5eb5;background:#352879;color:#fff;font:bold 18px monospace;border-radius:4px;cursor:pointer;z-index:5}
 #info{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:10;align-items:center;justify-content:center;-webkit-user-select:text;user-select:text;touch-action:auto}
 #info.on{display:flex}
@@ -28,9 +32,12 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block;outli
 #ibox button{font:inherit;background:#6c5eb5;color:#fff;border:2px solid #b6adeb;border-radius:3px;padding:4px 10px;margin:3px 4px 3px 0;cursor:pointer}
 #ibox button:hover,#ibtn:hover{background:#8a7dd0}
 #ibox .small{font-size:13px;color:#b6adeb}
+/* After the #ibtn rule, so that it wins: 44 pixels is the smallest comfortable target for a finger. */
+@media (pointer:coarse){#ibtn{width:44px;height:44px;font-size:22px}}
 </style></head><body>
 <div id="wrap"><canvas id="c" width="384" height="272" tabindex="0" role="img" aria-label="Sleazeburg 64 game screen. Press I for controls and credits."></canvas></div>
 <input id="sidfile" type="file" accept=".sid,.psid,.dat" style="display:none">
+<div id="rotate" role="status"><p>TURN YOUR PHONE SIDEWAYS</p><p class="small">Sleazeburg 64 is made to be played in landscape. Tap here to play upright anyway.</p></div>
 <div id="pad" data-car="0">
 <button data-k="esc" data-icon="esc" class="small" aria-label="Back to the title screen" style="left:62px;top:10px"></button>
 <button id="bfull" data-icon="full" class="small" aria-label="Full screen" style="left:62px;top:114px"></button>

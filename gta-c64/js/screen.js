@@ -10,7 +10,8 @@ scr.height = SH;
 export const g = scr.getContext('2d');
 cx.imageSmoothingEnabled = false;
 g.imageSmoothingEnabled = false;
-export const TOUCH = matchMedia('(pointer:coarse)').matches;
+import { TOUCH } from './help.js';
+export { TOUCH };
 function fit() {
   let k;
   if (TOUCH) {

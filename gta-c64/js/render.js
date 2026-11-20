@@ -2,7 +2,7 @@
 // Draws every screen: boot, title, the city with its HUD, and the win screen.
 import { BX, BY, GOAL, KIND, PAL, PI, SH, SW, VH } from './config.js';
 import { R, clamp, hyp, mod } from './util.js';
-import { TOUCH, cx, g, scr } from './screen.js';
+import { cx, g, scr } from './screen.js';
 import { ctext, text } from './font.js';
 import { ARW, carSpr, pedSpr } from './sprites.js';
 import { CHOP, JOBPTS, PAINT, crossing, waterAt } from './world.js';
@@ -10,6 +10,7 @@ import { mapC } from './worldview.js';
 import { G, P, onScreen, ppos, touch } from './state.js';
 import { npText, radio, radioAudible } from './radio.js';
 import { drawEnding } from './endings.js';
+import { help } from './help.js';
 
 let camXi = 0;
 let camYi = 0;
@@ -161,7 +162,7 @@ function drawWorld() {
     g.fillStyle = PAL[6];
     g.fillRect(40, 66, 240, 44);
     ctext('RETURN TO TITLE SCREEN?', 74, 1);
-    ctext(TOUCH ? 'FIRE = YES    CAR = NO' : 'Y = YES    N = NO', 92, 7);
+    ctext(help().confirm, 92, 7);
   }
   // Where a finger is steering to: a small cross, so it is clear what the player is heading for.
   if (touch.at && touch.at.y < VH) {
@@ -256,27 +257,9 @@ function drawTitle() {
   text('64', 264, 58, 7);
   ctext('A TOTALLY ORIGINAL CRIME SATIRE', 86, 15);
   ctext('8 BITS. 16 COLOURS. 0 SCRUPLES.', 96, 12);
-  if (TOUCH) {
-    text('HOLD A FINGER   WALK OR DRIVE', 48, 116, 3);
-    text('ON THE SCREEN   TOWARDS IT', 48, 126, 3);
-    text('GUN BUTTON      FIRE - HORN', 48, 136, 3);
-    text('CAR BUTTON      "BORROW" CAR', 48, 146, 3);
-    text('I BUTTON        INFO - CREDITS', 48, 156, 14);
-  } else {
-    text('ARROWS / WASD   WALK - DRIVE', 48, 116, 3);
-    text('SPACE           FIRE - HORN', 48, 126, 3);
-    text('E / ENTER       "BORROW" CAR', 48, 136, 3);
-    text('P PAUSE         I INFO - CREDITS', 48, 146, 3);
-    text('M MUSIC ON/OFF  R STATION  N NEXT', 48, 156, 14);
-  }
+  help().controls.forEach((line, i) => text(line, 48, 116 + i * 10, i < 4 ? 3 : 14));
   {
-    const t = G.musicOn
-      ? radioAudible()
-        ? 'NOW PLAYING: ' + npText()
-        : 'TUNING IN ...'
-      : TOUCH
-        ? 'MUSIC IS OFF - TAP THE NOTE BUTTON'
-        : 'MUSIC IS OFF - PRESS M TO TURN IT ON';
+    const t = G.musicOn ? (radioAudible() ? 'NOW PLAYING: ' + npText() : 'TUNING IN ...') : help().musicOff;
     if (t.length <= 40) ctext(t, 166, G.musicOn ? 7 : 12);
     else {
       const u = t + '     ',
@@ -286,8 +269,7 @@ function drawTitle() {
       text(u, w - o, 166, 7);
     }
   }
-  if (Math.floor(G.clock * 2) & 1)
-    ctext(TOUCH ? 'TAP THE SCREEN TO COMMIT CRIMES' : 'PRESS FIRE TO COMMIT CRIMES', 176, 1);
+  if (Math.floor(G.clock * 2) & 1) ctext(help().start, 176, 1);
   const off = Math.floor(G.clock * 60) % (SCROLL.length * 8);
   text(SCROLL, -off, 188, 13);
   if (off > SCROLL.length * 8 - SW) text(SCROLL, SCROLL.length * 8 - off, 188, 13);

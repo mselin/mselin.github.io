@@ -161,6 +161,10 @@ function initTouch() {
   area.addEventListener('pointercancel', release);
   area.addEventListener('lostpointercapture', release);
 
+  // A phone held upright is asked to turn sideways (FR-17); a tap puts the notice away for the rest of the visit.
+  const rotate = document.getElementById('rotate');
+  rotate.addEventListener('click', () => rotate.classList.add('gone'));
+
   // Full screen hides the browser's own bars; on a phone it also turns the game sideways where that is allowed.
   const full = document.getElementById('bfull');
   const root = document.documentElement;
@@ -185,6 +189,10 @@ let padCar = null;
 export function syncPad() {
   const car = P.car ? '1' : '0';
   if (car !== padCar) pad.dataset.car = padCar = car;
-  // Steering ends with the game: a finger still down from before a crash or an arrest does not carry over.
-  if (G.screen !== 'play' && touch.at) touch.at = null;
+  // Steering ends when play does (a crash, an arrest, game over, back to the title), and the finger that was
+  // steering cannot pick it up again: the player lifts it and touches again (FR-09).
+  if (G.screen !== 'play' && steering !== null) {
+    steering = null;
+    touch.at = null;
+  }
 }

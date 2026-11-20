@@ -46,6 +46,8 @@ npm test
 | `js/game.js`, `js/render.js`, `js/input.js` | Per-frame update, drawing, keyboard and touch. |
 | `js/endings.js` | The game-over and victory screens. |
 | `js/icons.js` | Pixel-art icons for the touch-screen buttons. |
+| `js/help.js`, `js/glyphs.js` | What the game says about its controls, for keyboards and for touch screens; the font's letter shapes. |
+| `specs/` | Feature specs. [Playing on a phone](specs/touch-controls.md) lists every touch-screen requirement and the tests for each. |
 | `assets/` | Picture files: the two end screens. |
 | `js/screen.js`, `js/font.js`, `js/sprites.js`, `js/audio.js` | Canvas, bitmap font, sprites, sound effects and the built-in tune. |
 | `js/playlist.js`, `js/radio.js`, `js/info.js` | Playlist parsing, the radio, the information page. |
