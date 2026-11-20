@@ -42,165 +42,18 @@ jobs:
         env:
           PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
         run: python3 .github/scripts/check_repo.py
-
-  game:
-    name: Sleazeburg 64 tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: gta-c64
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: gta-c64/package-lock.json
-      # The browser tests include the page talking to the real presence bridge.
-      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
-        with:
-          go-version-file: gta-c64/tools/presence-bridge/go.mod
-          cache: false
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run lint
-      - run: npm run test:unit
-      - name: Build the presence bridge for the browser tests
-        run: go -C tools/presence-bridge build -o "$RUNNER_TEMP/sleazeburg-presence" .
-      - run: npm run test:e2e
-        env:
-          SLEAZEBURG_BRIDGE: ${{ runner.temp }}/sleazeburg-presence
-
-  bridge:
-    name: Presence bridge on ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    defaults:
-      run:
-        shell: bash
-        working-directory: gta-c64/tools/presence-bridge
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
-        with:
-          go-version-file: gta-c64/tools/presence-bridge/go.mod
-          cache: false
-      - run: test -z "$(gofmt -l .)" || { gofmt -l .; echo "::error::run gofmt"; exit 1; }
-      - run: go vet ./...
-      - run: go test -count=1 ./...
-      - name: Race detector
-        if: runner.os == 'Linux'
-        run: go test -race -count=1 ./...
-      # Every system builds the same release binaries; bridge-reproducible checks they come out identical.
-      - name: Build the release binaries
+      - name: The game cards match games.json
         run: |
-          ./build.sh 0.0.0 linux amd64
-          ./build.sh 0.0.0 windows amd64
-          (cd dist && for f in sleazeburg-presence-*; do echo "$(sha256sum "$f" 2>/dev/null || shasum -a 256 "$f")"; done) \
-            | awk '{ sub(/^\*/, "", $2); print $1, $2 }' > "$RUNNER_TEMP/sums.txt"
-          cat "$RUNNER_TEMP/sums.txt"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: bridge-sums-${{ matrix.os }}
-          path: ${{ runner.temp }}/sums.txt
-          retention-days: 3
+          python3 -m unittest discover -s .github/scripts -v
+          python3 .github/scripts/games.py --check
 
-  bridge-reproducible:
-    name: Presence bridge builds are reproducible
-    needs: [bridge]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: bridge-sums-*
-          path: sums
-      - name: Compare the binaries built on each system
-        run: |
-          head -n 50 sums/*/sums.txt
-          first=$(ls sums/*/sums.txt | head -n 1)
-          for f in sums/*/sums.txt; do
-            diff -u "$first" "$f" || { echo "::error::$f differs from $first"; exit 1; }
-          done
-
-  homebrew:
-    name: Homebrew formula on macOS
-    runs-on: macos-latest
-    timeout-minutes: 20
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALL_CLEANUP: 1
-      HOMEBREW_NO_ANALYTICS: 1
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Install the formula from this commit and run its test
-        run: |
-          git archive --format=tar.gz --prefix=source/ -o "$RUNNER_TEMP/source.tar.gz" HEAD
-          brew tap-new --no-git local/ci
-          gta-c64/tools/presence-bridge/packaging/homebrew/render.sh 0.0.0 \
-            "file://$RUNNER_TEMP/source.tar.gz" "$RUNNER_TEMP/source.tar.gz" \
-            > "$(brew --repository)/Library/Taps/local/homebrew-ci/Formula/sleazeburg-presence.rb"
-          brew install --build-from-source local/ci/sleazeburg-presence
-          brew test local/ci/sleazeburg-presence
-          sleazeburg-presence -version
-
-  desktop:
-    name: Desktop app on ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    defaults:
-      run:
-        shell: bash
-        working-directory: gta-c64/desktop/src-tauri
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-      - name: Libraries the web view needs
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
-            libayatana-appindicator3-dev libxdo-dev libssl-dev xvfb
-      # The Rust release is pinned in rust-toolchain.toml; rustup fetches it on first use.
-      - name: Stage the game for the app
-        run: node ../stage.mjs
-      - run: cargo fmt --check
-      - run: cargo clippy --locked --all-targets -- -D warnings
-      - run: cargo test --locked
-      - name: Build the app
-        run: cargo build --locked
-      # The whole path: the game loads in WebKitGTK, the page calls the app, and the app reaches a stand-in
-      # for Discord.
-      - name: Smoke test in the real web view
-        if: runner.os == 'Linux'
-        working-directory: gta-c64/desktop
-        run: xvfb-run -a node smoke.cjs src-tauri/target/debug/sleazeburg-64
 
   # The one check that branch protection requires, so jobs can be added or renamed
   # above without touching the repository settings.
   ok:
     name: All checks passed
     if: always()
-    needs: [site, repo, game, bridge, bridge-reproducible, homebrew, desktop]
+    needs: [site, repo]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

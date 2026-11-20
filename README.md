@@ -8,16 +8,24 @@ branch. There is no build step: what is in the repository is what gets published
 | Path | What it is | Published at |
 |---|---|---|
 | `index.html`, `style.css`, `script.js` | The homepage: how my homelab is built, what runs in it, music and projects | [/](https://mselin.github.io/) |
-| `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `site.webmanifest` | The site icon: a terminal prompt. The `.ico` holds a hand-tuned 16 px version plus 32 and 48 px; the PNGs are for phone home screens. Pages without an icon of their own, such as the game, fall back to `/favicon.ico` | [/favicon.ico](https://mselin.github.io/favicon.ico) |
-| [`gta-c64/`](gta-c64/) | Sleazeburg 64, a top-down crime satire for the browser in the style of a Commodore 64 game. See its [README](gta-c64/README.md) | [/gta-c64/](https://mselin.github.io/gta-c64/) |
-| [`gta-c64/tools/presence-bridge/`](gta-c64/tools/presence-bridge/) | An optional program, written in Go, that shows what you are doing in the game on your Discord profile. See its [README](gta-c64/tools/presence-bridge/README.md) | Released as downloads, not as a page |
-| `.github/` | CI and release workflows, Dependabot settings and the repository check script | |
+| `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `site.webmanifest` | The site icon: a terminal prompt. The `.ico` holds a hand-tuned 16 px version plus 32 and 48 px; the PNGs are for phone home screens. Pages without an icon of their own fall back to `/favicon.ico` | [/favicon.ico](https://mselin.github.io/favicon.ico) |
+| [`games.json`](games.json) | The games shown on the homepage and on the [profile page](https://github.com/mselin): name, a line about each, and where to play it and read the source. See [The games](#the-games) | [/games.json](https://mselin.github.io/games.json) |
+| `.github/` | CI, Dependabot settings, the repository check script and the script that writes the game cards | |
 | `.nojekyll` | Tells GitHub Pages to publish the files as they are, without running Jekyll | |
 | `.htmlvalidate.json` | Settings for the HTML validator | |
 
-The Commodore 64 version of Sleazeburg 64 has its own repository,
-[mselin/Sleazeburg64](https://github.com/mselin/Sleazeburg64), whose CI publishes it at
-https://mselin.github.io/Sleazeburg64/. The homepage and the browser game link to it.
+The games have repositories of their own, each with its own CI that publishes it with GitHub Pages as a
+project site under this address:
+
+| Game | Repository | Published at |
+|---|---|---|
+| Sleazeburg 64, a top-down crime satire for the browser in the style of a Commodore 64 game, with its Discord presence bridge and desktop app | [mselin/gta-c64](https://github.com/mselin/gta-c64) | [/gta-c64/](https://mselin.github.io/gta-c64/) |
+| Sleazeburg 64 for a real Commodore 64, in 6502 assembly | [mselin/Sleazeburg64](https://github.com/mselin/Sleazeburg64) | [/Sleazeburg64/](https://mselin.github.io/Sleazeburg64/) |
+
+The browser game lived in this repository's `gta-c64/` folder until 20 November 2026, and moved, with its
+history, to its own repository at the same address. Version 0.1.0 of its presence bridge was released from
+here, under the tag `gta-c64/tools/presence-bridge/v0.1.0`; later versions are released from the game's
+repository.
 
 Every file in the repository can be fetched from the site, including this README. Nothing private belongs
 here.
@@ -30,11 +38,7 @@ Serve the folder with any static web server, for example:
 python3 -m http.server 8000
 ```
 
-Then open http://localhost:8000/ for the homepage and http://localhost:8000/gta-c64/ for the game. Opening
-the files directly from disk works for the homepage, but not for the game, because browsers will not load
-JavaScript modules from `file://`.
-
-The game has its own development setup and tests, described in its [README](gta-c64/README.md).
+Then open http://localhost:8000/ . Opening `index.html` directly from disk works too.
 
 ## Checks
 
@@ -43,11 +47,8 @@ The game has its own development setup and tests, described in its [README](gta-
 
 | Job | What it checks |
 |---|---|
-| Site checks | Every HTML page against the HTML standard, with [html-validate](https://html-validate.org/). Then [`check_repo.py`](.github/scripts/check_repo.py): local links and `#anchors` point at something that exists, JSON and SVG files are well-formed, and no private network addresses or private terms are committed |
-| Sleazeburg 64 tests | Lint, unit tests and browser tests for the game, including the game talking to the presence bridge |
-| Presence bridge on Linux, Windows and macOS | Formatting, `go vet`, tests, the race detector, and the release builds |
-| Presence bridge builds are reproducible | The release binaries come out identical on every system |
-| Homebrew formula on macOS | The Homebrew formula installs and passes its test |
+| Site checks | Every HTML page against the HTML standard, with [html-validate](https://html-validate.org/) |
+| Repository checks | [`check_repo.py`](.github/scripts/check_repo.py): local links and `#anchors` point at something that exists, JSON and SVG files are well-formed, and no private network addresses or private terms are committed. Then the game cards: [`games.py`](.github/scripts/games.py)'s tests, and the homepage's cards match [`games.json`](games.json) |
 | All checks passed | Succeeds only if every job above did. This is the one check that merging requires |
 
 To run the site checks yourself:
@@ -79,12 +80,21 @@ Merging into `main` publishes the change; GitHub Pages usually has it live withi
 The actions in the workflows are pinned to exact commits. Dependabot opens a pull request once a month to
 update them.
 
-## Releasing the presence bridge
+## The games
 
-Pushing a tag of the form `gta-c64/tools/presence-bridge/vX.Y.Z` starts
-[`presence-bridge-release.yml`](.github/workflows/presence-bridge-release.yml). It tests on three systems,
-builds the Linux and Windows binaries, checks the builds are reproducible, and then publishes the release.
-The bridge's [README](gta-c64/tools/presence-bridge/README.md) has the details.
+[`games.json`](games.json) lists the games, and both pages that show them follow it:
+
+- **The homepage.** Its game cards, between the `games` markers in `index.html`, are written from the file by
+  [`.github/scripts/games.py`](.github/scripts/games.py). After changing `games.json`, run it and commit both:
+
+  ```bash
+  python3 .github/scripts/games.py
+  ```
+
+  CI fails if the cards and the file differ.
+- **The profile page,** [github.com/mselin](https://github.com/mselin). Its README has the same games as table
+  rows; `python3 .github/scripts/games.py --markdown` prints them. The profile repository's CI checks its rows
+  against the published [`games.json`](https://mselin.github.io/games.json).
 
 ## Codeberg copy
 
@@ -99,10 +109,5 @@ include the game.
   (CC BY-SA 4.0). You may copy, share and adapt it, commercially too, as long as you credit Mika Selin with
   a link to https://mselin.github.io, say if you changed it, and release your version under the same licence.
   The full text is in [`LICENSES/CC-BY-SA-4.0.txt`](LICENSES/CC-BY-SA-4.0.txt).
-- **Sleazeburg 64** (`gta-c64/`) is free software under the GNU General Public License, version 2 or later.
-  See [`gta-c64/LICENSE`](gta-c64/LICENSE) and the game's README for what the licence does and does not
-  cover.
-- **The presence bridge** is under the same licence, with its own
-  [`LICENSE`](gta-c64/tools/presence-bridge/LICENSE).
-- **USBSID-Player** in `gta-c64/usbsid-player/` is by LouDnl, also under GPL-2.0-or-later. See its
-  [README](gta-c64/usbsid-player/README.md).
+- **The games** are in their own repositories, under their own licences: see
+  [mselin/gta-c64](https://github.com/mselin/gta-c64) and [mselin/Sleazeburg64](https://github.com/mselin/Sleazeburg64).

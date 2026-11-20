@@ -1,0 +1,19 @@
+{
+  "about": "The games on the homepage and the profile page. .github/scripts/games.py writes the homepage's game cards from this file, and CI checks both pages match it.",
+  "games": [
+    {
+      "name": "Sleazeburg 64",
+      "summary": "Top-down crime satire for the browser, done as if it ran on a C64: 320×200, 16 colours, sprites and SID-style sound. The car radio plays real .sid tunes.",
+      "play": "https://mselin.github.io/gta-c64/",
+      "source": "https://github.com/mselin/gta-c64",
+      "tags": ["JavaScript", "Canvas", "Web Audio", "USBSID-Player"]
+    },
+    {
+      "name": "Sleazeburg 64 for the C64",
+      "summary": "Work in progress: the same city on a real Commodore 64, written in 6502 assembly. So far, smooth scrolling and a car to drive. Plays in the browser in VirtualC64 Web, or on the real machine.",
+      "play": "https://mselin.github.io/Sleazeburg64/",
+      "source": "https://github.com/mselin/Sleazeburg64",
+      "tags": ["6502 assembly", "64tass", "VICE"]
+    }
+  ]
+}
