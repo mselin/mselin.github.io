@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Pedestrians and police on foot.
-import { DIRS, GRASS, LOT, PAL, PLAZA, ROAD, WALK } from './config.js';
+import { DIRS, GRASS, HIT, LOT, PAL, PLAZA, ROAD, WALK } from './config.js';
 import { R, hyp } from './util.js';
 import { decals, nearestLand, solidAt, tileAt, wallAt, waterAt } from './world.js';
 import { sfx } from './audio.js';
@@ -14,16 +14,17 @@ export function resetPeds() {
 }
 /** Leave a mark on the ground where someone died. */
 function stain(p) {
+  // Sized to the person as drawn, about 10 px across.
   decals.ctx.fillStyle = PAL[2];
-  for (let k = 0; k < 12; k++)
+  for (let k = 0; k < 18; k++)
     decals.ctx.fillRect(
-      Math.floor(p.x + (R() - 0.5) * 9),
-      Math.floor(p.y + (R() - 0.5) * 9),
+      Math.floor(p.x + (R() - 0.5) * 12),
+      Math.floor(p.y + (R() - 0.5) * 12),
       1 + (R() < 0.3),
       1,
     );
   decals.ctx.fillStyle = PAL[p.shirt];
-  decals.ctx.fillRect(Math.floor(p.x) - 1, Math.floor(p.y) - 2, 3, 4);
+  decals.ctx.fillRect(Math.floor(p.x) - 2, Math.floor(p.y) - 3, 5, 6);
 }
 export function killPed(p, byPlayer) {
   const i = G.peds.indexOf(p);
@@ -186,7 +187,7 @@ export function updPeds(dt) {
     const fx = c.x + Math.cos(c.a) * 6,
       fy = c.y + Math.sin(c.a) * 6;
     for (const p of G.peds.slice())
-      if (hyp(p.x - c.x, p.y - c.y) < 8 || hyp(p.x - fx, p.y - fy) < 7) {
+      if (hyp(p.x - c.x, p.y - c.y) < HIT.car || hyp(p.x - fx, p.y - fy) < HIT.nose) {
         const mine = c === P.car;
         killPed(p, mine);
         if (c.ai === 'cop' && !immunity) {

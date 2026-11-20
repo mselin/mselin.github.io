@@ -27,7 +27,7 @@ npm test
 ```
 
 - `npm run test:unit` runs the logic tests in Node: maths helpers, city generation, playlist parsing, car
-  handling and the heat system.
+  handling, the heat system, and how people on foot look and get hit.
   It also includes a soak test: an hour of seeded, random play run without a browser, checking after every
   step that nothing has gone wrong (invalid numbers, a stuck player, runaway numbers of cars).
 - `npm run test:e2e` plays the game in headless Chromium: starting, driving, police, jobs, the title-screen
@@ -53,6 +53,7 @@ npm test
 | `specs/` | Feature specs. [Playing on a phone](specs/touch-controls.md) lists every touch-screen requirement and the tests for each. |
 | `assets/` | Picture files: the two end screens. |
 | `js/screen.js`, `js/font.js`, `js/sprites.js`, `js/audio.js` | Canvas, bitmap font, sprites, sound effects and the built-in tune. |
+| `js/figures.js` | People on foot as pixel art: passers-by, police, scooter riders, cultists and the player. |
 | `js/playlist.js`, `js/radio.js`, `js/info.js` | Playlist parsing, the radio, the information page. |
 | `js/presence.js` | Optional Discord Rich Presence: tells the presence bridge what the game is doing. Off by default. |
 | `terms.html`, `privacy.html` | Terms of use and privacy policy, linked from the game and from the Discord application. |
