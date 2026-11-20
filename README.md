@@ -89,6 +89,11 @@ include the game.
 
 ## Licence
 
+- **The homepage** (`index.html`, `style.css` and `script.js`) is © 2026 Mika Selin, licensed under
+  [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/)
+  (CC BY-SA 4.0). You may copy, share and adapt it, commercially too, as long as you credit Mika Selin with
+  a link to https://mselin.github.io, say if you changed it, and release your version under the same licence.
+  The full text is in [`LICENSES/CC-BY-SA-4.0.txt`](LICENSES/CC-BY-SA-4.0.txt).
 - **Sleazeburg 64** (`gta-c64/`) is free software under the GNU General Public License, version 2 or later.
   See [`gta-c64/LICENSE`](gta-c64/LICENSE) and the game's README for what the licence does and does not
   cover.
@@ -96,4 +101,3 @@ include the game.
   [`LICENSE`](gta-c64/tools/presence-bridge/LICENSE).
 - **USBSID-Player** in `gta-c64/usbsid-player/` is by LouDnl, also under GPL-2.0-or-later. See its
   [README](gta-c64/usbsid-player/README.md).
-- **The homepage** files at the top level have no licence of their own.
