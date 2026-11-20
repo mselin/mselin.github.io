@@ -56,10 +56,16 @@ async function hold(dx, dy, ms) {
     await fingers('touchMove', [await onPage(p.x + dx, p.y + dy)]);
   }
 }
-/** Put the player in a sports car, stopped on an open avenue, facing south. */
+/**
+ * Put the player in a sports car, stopped on an open avenue, facing south. Moving traffic is cleared away for
+ * the rest of the test, as it spawns: a car that wanders into the avenue can stop the test car dead.
+ */
 const intoCar = () =>
   game.read((s) => {
     const c = s.mkCar(s.KIND.sports, 2 * 192 + 8, 250, Math.PI / 2, 2);
+    const clear = () => (s.G.cars = s.G.cars.filter((o) => o === c || o.parked));
+    clear();
+    setInterval(clear, 50);
     s.G.cars.push(c);
     s.P.car = c;
     s.P.x = c.x;
