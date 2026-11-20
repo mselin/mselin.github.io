@@ -16,13 +16,14 @@ async function play(seed, minutes) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  const [{ genMap, footClear }, { G, K, P, edge }, { initWorld, update }, { crime }, { WPX }] =
+  const [{ genMap, footClear }, { G, K, P, edge }, { initWorld, update }, { crime }, { WPX }, { carHits }] =
     await Promise.all([
       import('../../js/world.js'),
       import('../../js/state.js'),
       import('../../js/game.js'),
       import('../../js/heat.js'),
       import('../../js/config.js'),
+      import('../../js/cars.js'),
     ]);
   if (first) {
     genMap();
@@ -45,6 +46,7 @@ async function play(seed, minutes) {
     if (G.screen !== 'play' && G.screen !== 'down' && Math.random() < 0.05) edge.fire = edge.yes = true;
     if (step % 2000 === 1000) crime(40);
     if (step % 5000 === 2500) G.cash += 800;
+    const was = new Map(G.cars.map((c) => [c, { x: c.x, y: c.y, rails: c.ai === 'traffic' }]));
     update(DT);
     for (const k in edge) delete edge[k];
 
@@ -62,8 +64,19 @@ async function play(seed, minutes) {
     assert.ok(G.cash >= 0, `negative cash at ${where}`);
     assert.ok(G.heat >= 0 && G.heat <= 5, `heat ${G.heat} at ${where}`);
     assert.ok(P.hp >= 0 && P.hp <= 100, `hp ${P.hp} at ${where}`);
-    for (const c of G.cars)
+    for (const c of G.cars) {
       assert.ok(Number.isFinite(c.x + c.y + c.a + c.vx + c.vy + c.hp), `a car went non-finite at ${where}`);
+      // No car the physics moves, the player's or anyone's, ever goes into a building, a tree or the edge of the
+      // map. (Traffic follows its lanes instead, and pokes a little past the edge turning there; a car left like
+      // that, or knocked off its lane there, is moved clear before it next drives.)
+      const w = was.get(c),
+        moved = !w || w.x !== c.x || w.y !== c.y;
+      assert.ok(
+        !moved || w?.rails || c.ai === 'traffic' || !carHits(c, c.x, c.y),
+        `a ${c.kind.n}${c === P.car ? " (the player's)" : c.ai ? ` (${c.ai})` : ''} drove into a wall at ` +
+          `${c.x.toFixed(1)},${c.y.toFixed(1)}, ${where}`,
+      );
+    }
     for (const p of G.peds) assert.ok(Number.isFinite(p.x + p.y), `a pedestrian went non-finite at ${where}`);
     assert.ok(G.cars.length < 110, `${G.cars.length} cars at ${where}`);
     assert.ok(G.peds.length < 60, `${G.peds.length} pedestrians at ${where}`);
