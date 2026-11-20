@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // The player on foot and at the wheel: movement, weapons, getting in and out of cars, dying and getting arrested.
-import { DIRS, JACK, KIND } from './config.js';
+import { DIRS, HIT, JACK, KIND } from './config.js';
 import { angDiff, clamp, hyp, pick } from './util.js';
 import { COPS, HOSP, footClear, waterAt } from './world.js';
 import { noise, sfx } from './audio.js';
@@ -237,7 +237,7 @@ export function updPlayer(dt) {
     if (edge.use) enterCar();
     for (const o of G.cars) {
       const sp = hyp(o.vx, o.vy);
-      if (sp > 45 && P.hitT <= 0 && hyp(o.x - P.x, o.y - P.y) < 9) {
+      if (sp > 45 && P.hitT <= 0 && hyp(o.x - P.x, o.y - P.y) < HIT.car) {
         hurt(sp * 0.28, 'A PEDESTRIAN. IN THIS ECONOMY?');
         sfx.squish();
         const nx = P.x + o.vx * 0.06,

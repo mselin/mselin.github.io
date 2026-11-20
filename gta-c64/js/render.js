@@ -5,6 +5,7 @@ import { R, clamp, hyp, mod } from './util.js';
 import { cx, g, scr } from './screen.js';
 import { ctext, text } from './font.js';
 import { ARW, carSpr, pedSpr } from './sprites.js';
+import { PLAYER_OUTLINE } from './figures.js';
 import { CHOP, JOBPTS, PAINT, crossing, waterAt } from './world.js';
 import { mapC } from './worldview.js';
 import { G, P, onScreen, ppos, touch } from './state.js';
@@ -43,6 +44,13 @@ function drawSwimmer(p) {
   g.fillRect(sx - 2, sy + 3, 5, 1);
   g.fillStyle = PAL[1];
   g.fillRect(f ? sx - 3 : sx + 3, sy + 3, 1, 1);
+  // The player keeps the outlines they have on land round their head: outermost first, corners cut.
+  if (p === P)
+    for (let r = PLAYER_OUTLINE.length; r > 0; r--) {
+      g.fillStyle = PAL[PLAYER_OUTLINE[r - 1]];
+      g.fillRect(sx - 1 - r, sy - 1 - r, 3 + 2 * r, 2 + 2 * r);
+      g.fillRect(sx - r, sy - 2 - r, 1 + 2 * r, 4 + 2 * r);
+    }
   g.fillStyle = PAL[p.hair];
   g.fillRect(sx - 1, sy - 2, 3, 2);
   g.fillStyle = PAL[p.skin];
@@ -70,7 +78,7 @@ function drawWorld() {
     text(d[0], sx, sy, d[2]);
   }
   for (const p of G.peds) {
-    if (!onScreen(p.x, p.y, 8)) continue;
+    if (!onScreen(p.x, p.y, 10)) continue;
     if (waterAt(p.x, p.y)) drawSwimmer(p);
     else drawSpr(pedSpr(p, Math.floor(p.anim) & 1), Math.atan2(p.dy, p.dx), p.x, p.y);
   }

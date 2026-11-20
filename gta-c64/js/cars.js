@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Car handling, collisions, traffic and police driving, damage and explosions.
-import { BLK, DIRS, GRASS, GRIP, KIND, LOT, NB, PAL, PI, PLAZA, ROAD, WALK } from './config.js';
+import { BLK, DIRS, GRASS, GRIP, HIT, KIND, LOT, NB, PAL, PI, PLAZA, ROAD, WALK } from './config.js';
 import { R, angDiff, clamp, hyp, mod, pick } from './util.js';
 import { decals, footClear, tileAt, wallAt, waterAt } from './world.js';
 import { sfx } from './audio.js';
@@ -265,21 +265,14 @@ function trafficAI(c, dt) {
       }
     }
     if (want) {
-      for (const p of G.peds) {
-        const rx = p.x - c.x,
-          ry = p.y - c.y,
+      // Someone on foot ahead, near enough to the car's line that it would hit them.
+      const inPath = (x, y) => {
+        const rx = x - c.x,
+          ry = y - c.y,
           f = rx * D[0] + ry * D[1];
-        if (f > 4 && f < 24 && Math.abs(rx * D[1] - ry * D[0]) < 7) {
-          want = 0;
-          break;
-        }
-      }
-      if (!P.car) {
-        const rx = P.x - c.x,
-          ry = P.y - c.y,
-          f = rx * D[0] + ry * D[1];
-        if (f > 4 && f < 24 && Math.abs(rx * D[1] - ry * D[0]) < 7) want = 0;
-      }
+        return f > 4 && f < HIT.ahead && Math.abs(rx * D[1] - ry * D[0]) < HIT.lane;
+      };
+      if (G.peds.some((p) => inPath(p.x, p.y)) || (!P.car && inPath(P.x, P.y))) want = 0;
     }
   }
   c.sp += clamp(want - c.sp, -220 * dt, 70 * dt);

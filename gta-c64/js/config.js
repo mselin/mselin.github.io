@@ -83,6 +83,18 @@ export const SHOPS = [
   'PODCAST HQ',
   'THOUGHTS&PRAYERS',
 ];
+/**
+ * How close things must come to someone on foot to hit them, from the middle of the person. People are drawn
+ * about 10 px across, 5 px either side of their middle (see figures.js), so these match what is on screen.
+ * Their footprint against walls (footClear in world.js) stays smaller, so doorways and pavements stay easy.
+ */
+export const HIT = {
+  shot: 6, // a bullet: 5 px of shoulder and half the 2 px bullet
+  car: 10, // a moving car's middle: half its 11 px width and 5 px of shoulder
+  nose: 9, // the point 6 px ahead of a moving car's middle: reaches 5 px past its front bumper
+  lane: 9, // traffic brakes for someone this far either side of the line it drives along
+  ahead: 26, // and up to this far ahead of its middle, so it stops before its bumper gets there
+};
 /** The numerology cult: which crossing they meet at (counting avenues from the west and streets from the north, from 1) and how many turn up. */
 export const CULT = { ave: 6, st: 7, members: 7 };
 /** The districts of the city: the id used in code and saved data, and the name shown on screen. */

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Bullets and pickups.
-import { DIRS, HT, KIND, WATER } from './config.js';
+import { DIRS, HIT, HT, KIND, WATER } from './config.js';
 import { R, hyp } from './util.js';
 import { solidAt, tileAt } from './world.js';
 import { sfx } from './audio.js';
@@ -25,12 +25,12 @@ export function updBullets(dt) {
     }
     if (b.own === 0) {
       for (const p of G.peds.slice())
-        if (hyp(p.x - b.x, p.y - b.y) < 5) {
+        if (hyp(p.x - b.x, p.y - b.y) < HIT.shot) {
           killPed(p, true);
           b.l = 0;
           break;
         }
-    } else if (!P.car && G.screen === 'play' && hyp(P.x - b.x, P.y - b.y) < 5) {
+    } else if (!P.car && G.screen === 'play' && hyp(P.x - b.x, P.y - b.y) < HIT.shot) {
       hurt(11, 'RESISTING ARREST. ALLEGEDLY.');
       b.l = 0;
     }

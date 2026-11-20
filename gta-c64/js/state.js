@@ -37,10 +37,12 @@ const freshPlayer = () => ({
   cd: 0,
   anim: 0,
   hitT: 0,
-  shirt: 2,
+  // A yellow jacket that nobody else wears, black jeans and, for the player alone, a white outline (figures.js).
+  shirt: 7,
   hair: 0,
   skin: 10,
-  type: 'civ',
+  legs: 0,
+  type: 'player',
   swim: false, // in the water
 });
 // Everything about the running game that more than one module changes.
