@@ -107,6 +107,17 @@ export const DISTRICTS = {
 };
 export const GOAL = 25000,
   HT = [0, 8, 25, 60, 110, 180];
+/**
+ * How close the police must be to notice the player, in pixels from the player (or the player's car).
+ * Noticing keeps the heat from cooling, puts a patrol car in traffic onto the chase, and spots a stolen cruiser.
+ */
+export const NOTICE = {
+  car: 150, // a police car already chasing
+  foot: 120, // an officer on foot
+  patrol: 130, // a police car on patrol in ordinary traffic
+};
+/** Driving a police car where the police can see it: the heat goes up to at least this. */
+export const STOLEN_CRUISER_HEAT = 2;
 export const HEATMSG = [
   '',
   'HEAT 1: A STERN LETTER IS BEING DRAFTED',

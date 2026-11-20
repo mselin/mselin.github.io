@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // The wanted level: crimes raise it, losing the police lowers it. Also the paint shop, district names and news ticker.
-import { CCOLS, DISTRICTS, HEATMSG, HT, NEWS } from './config.js';
+import { CCOLS, DISTRICTS, HEATMSG, HT, KIND, NEWS, NOTICE, STOLEN_CRUISER_HEAT } from './config.js';
 import { R, hyp, pick } from './util.js';
 import { PAINT, districtAt } from './world.js';
 import { sfx, tone } from './audio.js';
@@ -30,16 +30,33 @@ export function updHeat(dt) {
   const p = ppos();
   let near = false;
   for (const c of G.cars)
-    if (c.ai === 'cop' && hyp(c.x - p.x, c.y - p.y) < 150) {
+    if (c.ai === 'cop' && hyp(c.x - p.x, c.y - p.y) < NOTICE.car) {
       near = true;
       break;
     }
   if (!near)
     for (const q of G.peds)
-      if (q.type === 'cop' && hyp(q.x - p.x, q.y - p.y) < 120) {
+      if (q.type === 'cop' && hyp(q.x - p.x, q.y - p.y) < NOTICE.foot) {
         near = true;
         break;
       }
+  // The police know their own cruisers, and know the player is not one of them. A patrol car in ordinary
+  // traffic notices too: there are police about even before the player has any heat.
+  if (G.screen === 'play' && P.car && P.car.kind === KIND.police && G.heat < STOLEN_CRUISER_HEAT) {
+    const patrol = G.cars.some(
+      (c) =>
+        c !== P.car &&
+        c.ai === 'traffic' &&
+        c.kind === KIND.police &&
+        c.driver &&
+        !c.dead &&
+        hyp(c.x - p.x, c.y - p.y) < NOTICE.patrol,
+    );
+    if (near || patrol) {
+      crime(HT[STOLEN_CRUISER_HEAT] - G.heatPts);
+      msg('THE COPS KNOW THAT CRUISER. THEY DO NOT KNOW YOU.');
+    }
+  }
   if (G.heat > 0) {
     if (near) G.heatCool = 0;
     else {
