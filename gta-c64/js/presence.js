@@ -12,6 +12,9 @@
 //   - The game never depends on it. Every failure ends in a status line on the information page, and nothing
 //     here can throw into the game loop.
 //
+// In the desktop app (gta-c64/desktop) there is no bridge: the page reports to the app itself, which talks to
+// Discord, through the one command the app allows it.
+//
 // Some browsers, Safari among them, will not let this https page reach http://127.0.0.1 at all. For those the
 // bridge serves a small window of its own, the "helper window": the player opens it with a button, this page
 // sends it each request with postMessage, and the window makes the request instead.
@@ -45,6 +48,9 @@ const env = {
   clear: (handle) => clearTimeout(handle),
   storage: () => localStorage,
   open: (url, name, features) => window.open(url, name, features),
+  // The desktop app's own way in, where there is one.
+  desktop: () => typeof window !== 'undefined' && typeof window.__TAURI__?.core?.invoke === 'function',
+  invoke: (cmd, args) => window.__TAURI__.core.invoke(cmd, args),
   // Inside another site's frame, that site could trick the player into clicking the setting on.
   framed: () => typeof window !== 'undefined' && window.top !== window,
   listen: (fn) => addEventListener('message', fn),
@@ -189,7 +195,18 @@ function fromRelay(e) {
   }
 }
 
+/** Hand a state to the desktop app, or tell it the game stopped. It answers as the bridge would. */
+async function viaApp(body) {
+  try {
+    const reply = await env.invoke('presence', { update: body ? JSON.parse(body) : null });
+    return { ok: true, status: 200, json: async () => reply };
+  } catch (e) {
+    return { ok: false, status: 400, json: async () => ({}) }; // the app refused the state
+  }
+}
+
 function request(method, body, farewell) {
+  if (env.desktop()) return viaApp(body);
   if (useRelay) return viaRelay(method, body);
   const init = { method, mode: 'cors', credentials: 'omit', cache: 'no-store', ...loopbackOption() };
   if (body) {
@@ -306,6 +323,7 @@ function farewellRelay() {
  */
 export function openRelay() {
   if (env.framed()) return setStatus('framed');
+  if (env.desktop()) return start(); // the app reaches Discord itself
   if (!listening && env.listen) {
     env.listen(fromRelay);
     listening = true;
@@ -337,13 +355,13 @@ export function setPresence(on) {
   if (on && env.framed()) return setStatus('framed');
   remember(STORAGE_KEY, on ? '1' : '0');
   // A browser that needed the helper window last time will need it again, and this click may open it.
-  if (on && recall(RELAY_KEY) === '1') openRelay();
+  if (on && !env.desktop() && recall(RELAY_KEY) === '1') openRelay();
   else if (on) start();
   else stop();
 }
 
 /** Whether the setting is on, and how it is going. */
-export const presenceStatus = () => ({ enabled, status, relay: useRelay });
+export const presenceStatus = () => ({ enabled, status, relay: useRelay, desktop: env.desktop() });
 
 /** Be told when the status changes. */
 export function onPresenceChange(fn) {

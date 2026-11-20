@@ -268,7 +268,7 @@ test('off by default: nothing is requested, however long the game runs', async (
   r.m.initPresence();
   await r.pass(120);
   assert.deepEqual(r.calls, []);
-  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'off', relay: false });
+  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'off', relay: false, desktop: false });
 });
 
 test('turning it on sends the state, then a heartbeat every ten seconds', async () => {
@@ -508,7 +508,7 @@ test('switching off asks the helper window to clear the profile and close', asyn
   await settle();
   r.m.setPresence(false);
   assert.deepEqual(r.win.inbox.at(-1), { data: { sb64: 'stop' }, origin: BRIDGE });
-  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'off', relay: false });
+  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'off', relay: false, desktop: false });
   assert.deepEqual(r.toBridge(), []);
 });
 
@@ -533,7 +533,7 @@ test('inside another website the setting will not switch on, so that site cannot
   r.m.setPresence(true);
   r.m.openRelay();
   await r.pass(5);
-  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'framed', relay: false });
+  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'framed', relay: false, desktop: false });
   assert.deepEqual(r.calls, []);
   assert.deepEqual(r.opened, []);
   assert.equal(r.stored.sb64presence, undefined);
@@ -543,4 +543,52 @@ test('inside another website the setting will not switch on, so that site cannot
   earlier.m.initPresence();
   await settle();
   assert.deepEqual(earlier.calls, []);
+});
+
+test('in the desktop app the game reports to the app itself, with no bridge and no helper window', async () => {
+  const r = await rig({ stored: { sb64presenceRelay: '1' } });
+  const invoked = [];
+  r.m.configurePresence({
+    desktop: () => true,
+    invoke: async (cmd, args) => {
+      invoked.push({ cmd, args });
+      return { ok: true, app_id_configured: true, discord_connected: true };
+    },
+  });
+  r.m.initPresence();
+  r.m.setPresence(true);
+  await settle();
+  assert.equal(r.m.presenceStatus().status, 'connected');
+  assert.equal(r.m.presenceStatus().desktop, true);
+  assert.deepEqual(r.opened, [], 'no helper window, even where one was needed before');
+  assert.deepEqual(r.toBridge(), [], 'nothing goes to the bridge');
+  assert.equal(invoked[0].cmd, 'presence');
+  assert.deepEqual(invoked[0].args.update, {
+    v: 1,
+    mode: 'roaming',
+    district: 'gentrifia',
+    transport: 'on_foot',
+    heat: 0,
+  });
+  // Switching off tells the app the game stopped.
+  r.m.setPresence(false);
+  await settle();
+  assert.deepEqual(invoked.at(-1), { cmd: 'presence', args: { update: null } });
+});
+
+test('in the desktop app a state the app refuses is reported, not retried at once', async () => {
+  const r = await rig();
+  let calls = 0;
+  r.m.configurePresence({
+    desktop: () => true,
+    invoke: async () => {
+      calls++;
+      throw 'not a valid state';
+    },
+  });
+  r.m.setPresence(true);
+  await settle();
+  assert.equal(r.m.presenceStatus().status, 'refused');
+  await r.pass(10);
+  assert.ok(calls <= 3, `${calls} attempts`);
 });
