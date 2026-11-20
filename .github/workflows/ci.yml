@@ -27,6 +27,17 @@ jobs:
           node-version: 22
       - name: Validate HTML
         run: git ls-files -z '*.html' | xargs -0 npx --yes html-validate@11.21.1
+
+  # Its own job, on a runner where no npm package has run: html-validate's dependencies are resolved when it
+  # runs, and code from them must not share a runner with the PRIVATE_TERMS secret.
+  repo:
+    name: Repository checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Check links, data files and private details
         env:
           PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
@@ -149,7 +160,7 @@ jobs:
   ok:
     name: All checks passed
     if: always()
-    needs: [site, game, bridge, bridge-reproducible, homebrew]
+    needs: [site, repo, game, bridge, bridge-reproducible, homebrew]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
