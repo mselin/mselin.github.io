@@ -14,6 +14,10 @@ branch. There is no build step: what is in the repository is what gets published
 | `.nojekyll` | Tells GitHub Pages to publish the files as they are, without running Jekyll | |
 | `.htmlvalidate.json` | Settings for the HTML validator | |
 
+The Commodore 64 version of Sleazeburg 64 has its own repository,
+[mselin/Sleazeburg64](https://github.com/mselin/Sleazeburg64), whose CI publishes it at
+https://mselin.github.io/Sleazeburg64/. The homepage and the browser game link to it.
+
 Every file in the repository can be fetched from the site, including this README. Nothing private belongs
 here.
 

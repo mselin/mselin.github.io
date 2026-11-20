@@ -3,6 +3,9 @@
 A top-down crime satire for the browser, made to look and sound like a Commodore 64 game: 320×200 pixels,
 16 colours, sprites and SID music. Play it at https://mselin.github.io/gta-c64/ .
 
+A version for a real Commodore 64, in 6502 assembly, is being written in its own repository,
+[mselin/Sleazeburg64](https://github.com/mselin/Sleazeburg64). Play it at https://mselin.github.io/Sleazeburg64/ .
+
 The game is plain JavaScript modules with no build step. GitHub Pages serves this folder as it is.
 
 ## Run it locally
