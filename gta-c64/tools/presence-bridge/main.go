@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -39,6 +40,12 @@ func main() {
 	extra := flag.String("allow-origin", "", "extra origins allowed to use the bridge, comma separated (for development)")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
+	if version == "dev" {
+		// Installed with go install: the module version is the release.
+		if info, ok := debug.ReadBuildInfo(); ok && strings.HasPrefix(info.Main.Version, "v") {
+			version = strings.TrimPrefix(info.Main.Version, "v")
+		}
+	}
 	if *showVersion {
 		fmt.Println("sleazeburg-presence", version)
 		return

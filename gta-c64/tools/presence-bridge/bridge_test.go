@@ -156,12 +156,16 @@ func TestDiscordRestartIsLoggedOnceAndThePresenceReturns(t *testing.T) {
 	if n := r.logged("will keep trying"); n != 1 {
 		t.Errorf("want one log line about losing Discord, got %d: %v", n, r.logs)
 	}
+	attempts := r.discord.dials
 	r.discord.start()
 	r.b.Update(state("roaming", "gentrifia", "car", 0))
-	r.pass(2)
+	r.pass(6)
 	got := r.discord.seen()
 	if len(got) != 2 || details(t, got[1]) != "Cruising Gentrifia at 50 Hz PAL" {
 		t.Fatalf("the presence should come back by itself, got %v", got)
+	}
+	if attempts > 14 {
+		t.Errorf("%d attempts to reach Discord in a minute: it should back off", attempts)
 	}
 	if r.discord.handshakes != 2 || r.logged("Discord is back") != 1 {
 		t.Errorf("handshakes %d, logs %v", r.discord.handshakes, r.logs)
@@ -217,6 +221,16 @@ func TestClaimFile(t *testing.T) {
 	}
 	if claim["priority"] != 30 || claim["expires"] <= r.clock.t.Unix() {
 		t.Errorf("claim %v", claim)
+	}
+	// Kept fresh, with an expiry always ahead, while it lasts.
+	for i := 0; i < 5; i++ {
+		r.b.Update(state("roaming", "gentrifia", "car", 0))
+		r.pass(10)
+		body, _ = os.ReadFile(file)
+		json.Unmarshal(body, &claim)
+		if claim["expires"] <= r.clock.t.Unix()+20 {
+			t.Fatalf("the claim is about to lapse: %v at %d", claim, r.clock.t.Unix())
+		}
 	}
 	r.b.Stop()
 	if _, err := os.Stat(file); err == nil {

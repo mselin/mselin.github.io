@@ -1,0 +1,165 @@
+# Publishes a release of the Sleazeburg 64 presence bridge (gta-c64/tools/presence-bridge).
+#
+# Runs when a tag of the form gta-c64/tools/presence-bridge/vX.Y.Z is pushed: the form `go install` needs for
+# a module in a subfolder. It tests on three systems, builds the Linux and Windows binaries, rebuilds them on
+# two other systems to check they are reproducible, and only then publishes the release.
+#
+# Every job runs on GitHub-hosted runners and the unsigned .exe is uploaded as an artifact before anything
+# else uses it, which is what SignPath's GitHub integration needs if Windows signing is added later.
+name: Presence bridge release
+
+on:
+  push:
+    tags: ['gta-c64/tools/presence-bridge/v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: presence-bridge-release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: gta-c64/tools/presence-bridge
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: gta-c64/tools/presence-bridge/go.mod
+          cache: false
+      - run: go vet ./...
+      - run: go test -count=1 ./...
+
+  build:
+    name: Build
+    needs: [test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    defaults:
+      run:
+        working-directory: gta-c64/tools/presence-bridge
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: gta-c64/tools/presence-bridge/go.mod
+          cache: false
+      - name: Read the version from the tag
+        id: version
+        run: |
+          v="${GITHUB_REF_NAME##*/v}"
+          if ! [[ $v =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$GITHUB_REF_NAME does not end in /vX.Y.Z"
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Build
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ./build.sh "$VERSION" linux amd64
+          ./build.sh "$VERSION" windows amd64
+          (cd dist && sha256sum sleazeburg-presence-* > SHA256SUMS && cat SHA256SUMS)
+      - name: Homebrew formula for this release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          packaging/homebrew/render.sh "$VERSION" \
+            "https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz" \
+            > dist/sleazeburg-presence.rb
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: gta-c64/tools/presence-bridge/dist/
+          if-no-files-found: error
+
+  reproduce:
+    name: Rebuild on ${{ matrix.os }}
+    needs: [build]
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: gta-c64/tools/presence-bridge
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: gta-c64/tools/presence-bridge/go.mod
+          cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+      - name: Build again and compare with the release
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          ./build.sh "$VERSION" linux amd64
+          ./build.sh "$VERSION" windows amd64
+          for f in dist/sleazeburg-presence-*; do
+            mine=$( (sha256sum "$f" 2>/dev/null || shasum -a 256 "$f") | cut -c1-64)
+            theirs=$(grep " $(basename "$f")\$" "$RUNNER_TEMP/release/SHA256SUMS" | cut -c1-64)
+            echo "$(basename "$f"): $mine (release: $theirs)"
+            if [ -z "$theirs" ] || [ "$mine" != "$theirs" ]; then
+              echo "::error::$(basename "$f") is not reproducible"
+              exit 1
+            fi
+          done
+
+  release:
+    name: Publish
+    needs: [build, reproduce]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          base="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/gta-c64/tools/presence-bridge"
+          {
+            echo "The optional helper program that shows what you are doing in [Sleazeburg 64](https://mselin.github.io/gta-c64/) on your Discord profile."
+            echo "Read the [README]($base/README.md) before running it: it says what the program does and does not do, and how to remove it."
+            echo
+            echo "- **Linux and Windows:** the binaries below. Check them against \`SHA256SUMS\`."
+            echo "- **macOS:** install with Homebrew, \`brew install mselin/tap/sleazeburg-presence\`, which builds from this tag's source. \`sleazeburg-presence.rb\` is the formula for this release."
+            echo "- **Any system:** build from source; \`build.sh\` reproduces these files byte for byte."
+            echo
+            echo "The binaries are **not signed**, so Windows warns about them. They were rebuilt on Windows and macOS runners and came out identical. See the [code signing policy]($base/CODE_SIGNING_POLICY.md)."
+            echo
+            echo "Tested automatically against a stand-in for Discord on Linux, Windows and macOS. Real Discord, and the warnings Windows and macOS show, are unverified on each system until its [testing checklist]($base/TESTING.md) has been run."
+            echo
+            echo "Free software under the GNU GPL, version 2 or later, with no warranty."
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "Presence bridge $VERSION" --notes-file notes.md

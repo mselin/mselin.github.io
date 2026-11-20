@@ -21,6 +21,7 @@ type fakeDiscord struct {
 	mu         sync.Mutex
 	activities []string // the activity of each SET_ACTIVITY as JSON, "null" for a clear
 	handshakes int
+	dials      int // every attempt to connect, answered or not
 	down       bool
 	conns      []io.Closer
 }
@@ -75,6 +76,7 @@ func (f *fakeDiscord) serve(rw io.ReadWriteCloser) {
 func (f *fakeDiscord) dial() (io.ReadWriteCloser, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.dials++
 	if f.down {
 		return nil, errors.New("fake Discord is not running")
 	}

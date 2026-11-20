@@ -1,0 +1,4 @@
+# Keep LF line endings on every system: the schema is embedded in the program, and a CRLF checkout on
+# Windows would build a different binary from the published one.
+* text=auto eol=lf
+*.exe binary

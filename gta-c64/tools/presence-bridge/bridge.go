@@ -18,6 +18,7 @@ const (
 	pausedTimeout    = 5 * time.Minute  // paused for this long: stop showing
 	pingEvery        = 10 * time.Second // how often to check Discord is still there
 	claimPriority    = 30               // see claim()
+	redialEvery      = 5 * time.Second  // while Discord cannot be reached
 )
 
 // Bridge holds one play session and keeps Discord in step with it.
@@ -45,7 +46,9 @@ type Bridge struct {
 	lastSend   time.Time
 	lastPing   time.Time
 	downLogged bool
+	lastDial   time.Time
 	nonce      int
+	claimUntil time.Time // when the claim file last written expires
 }
 
 // Update takes a state from the game. It also counts as a heartbeat.
@@ -165,6 +168,10 @@ func (b *Bridge) flush() {
 			b.sent = nil
 			return
 		}
+		if now.Sub(b.lastDial) < redialEvery {
+			return
+		}
+		b.lastDial = now
 		rw, err := b.dial()
 		if err == nil {
 			c := &discordConn{rw}
@@ -208,12 +215,20 @@ func (b *Bridge) claim(showing bool) {
 	}
 	file := filepath.Join(b.claimDir, "sleazeburg-64.claim")
 	if !showing {
-		os.Remove(file)
+		if !b.claimUntil.IsZero() {
+			os.Remove(file)
+			b.claimUntil = time.Time{}
+		}
 		return
+	}
+	now := b.now()
+	if b.claimUntil.Sub(now) > 30*time.Second {
+		return // still fresh: no need to touch the disk every second
 	}
 	if info, err := os.Stat(b.claimDir); err != nil || !info.IsDir() {
 		return
 	}
-	body, _ := json.Marshal(map[string]int64{"priority": claimPriority, "expires": b.now().Add(time.Minute).Unix()})
+	b.claimUntil = now.Add(time.Minute)
+	body, _ := json.Marshal(map[string]int64{"priority": claimPriority, "expires": b.claimUntil.Unix()})
 	os.WriteFile(file, body, 0o600)
 }
