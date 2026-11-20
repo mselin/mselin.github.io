@@ -16,7 +16,8 @@ Browsers will not load modules from `file://`, so serve the folder:
 npm start
 ```
 
-Then open http://localhost:8064/ . Any static file server works just as well.
+Then open http://localhost:8064/ . Any static file server works just as well. To try Discord Rich Presence
+on a copy served like this, start the bridge with `-allow-origin http://localhost:8064`.
 
 ## Tests
 

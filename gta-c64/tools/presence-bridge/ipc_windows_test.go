@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -65,5 +66,84 @@ func TestOverARealNamedPipe(t *testing.T) {
 func TestNoDiscordIsAnErrorNotAHang(t *testing.T) {
 	if _, err := dialIPC(`\\.\pipe\sleazeburg-presence-test-nobody-home`); err == nil {
 		t.Error("opened a pipe that does not exist")
+	}
+}
+
+// Whoever serves a pipe called discord-ipc-0 may not be Discord. Check what such a server can do with the bridge's
+// connection: it may learn who connected (identification), but must not be able to act as them (impersonation).
+func TestThePipesServerCannotActAsTheBridgesUser(t *testing.T) {
+	const securityIdentification = 1
+	name := fmt.Sprintf(`\\.\pipe\sleazeburg-presence-sqos-%d`, os.Getpid())
+	kernel32 := syscall.NewLazyDLL("kernel32.dll")
+	advapi32 := syscall.NewLazyDLL("advapi32.dll")
+	namePtr, err := syscall.UTF16PtrFromString(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, _, callErr := kernel32.NewProc("CreateNamedPipeW").Call(
+		uintptr(unsafe.Pointer(namePtr)), 0x3, 0, 1, 4096, 4096, 0, 0)
+	if handle == ^uintptr(0) {
+		t.Fatalf("CreateNamedPipe: %v", callErr)
+	}
+	defer syscall.CloseHandle(syscall.Handle(handle))
+
+	type outcome struct {
+		level uint32
+		err   string
+	}
+	result := make(chan outcome, 1)
+	go func() {
+		// Impersonation applies to one OS thread.
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		kernel32.NewProc("ConnectNamedPipe").Call(handle, 0)
+		var buf [1]byte
+		var n uint32
+		// A server can only impersonate a client it has read from.
+		if err := syscall.ReadFile(syscall.Handle(handle), buf[:], &n, nil); err != nil {
+			result <- outcome{err: "read: " + err.Error()}
+			return
+		}
+		if ok, _, e := advapi32.NewProc("ImpersonateNamedPipeClient").Call(handle); ok == 0 {
+			result <- outcome{err: "ImpersonateNamedPipeClient: " + e.Error()}
+			return
+		}
+		defer advapi32.NewProc("RevertToSelf").Call()
+		thread, _, _ := kernel32.NewProc("GetCurrentThread").Call()
+		var token syscall.Token
+		if ok, _, e := advapi32.NewProc("OpenThreadToken").Call(
+			thread, syscall.TOKEN_QUERY, 1, uintptr(unsafe.Pointer(&token))); ok == 0 {
+			result <- outcome{err: "OpenThreadToken: " + e.Error()}
+			return
+		}
+		defer token.Close()
+		var level, size uint32
+		if err := syscall.GetTokenInformation(token, syscall.TokenImpersonationLevel,
+			(*byte)(unsafe.Pointer(&level)), 4, &size); err != nil {
+			result <- outcome{err: "GetTokenInformation: " + err.Error()}
+			return
+		}
+		result <- outcome{level: level}
+	}()
+
+	rw, err := dialIPC(name)
+	if err != nil {
+		t.Fatalf("opening the pipe: %v", err)
+	}
+	defer rw.Close()
+	if _, err := rw.Write([]byte{0}); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case r := <-result:
+		if r.err != "" {
+			t.Fatal(r.err)
+		}
+		if r.level != securityIdentification {
+			t.Fatalf("the pipe's server got impersonation level %d; want %d (identification only)",
+				r.level, securityIdentification)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the pipe's server did not finish")
 	}
 }

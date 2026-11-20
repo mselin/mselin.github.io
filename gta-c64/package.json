@@ -10,8 +10,8 @@
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "node --test \"tests/unit/*.test.js\"",
     "test:e2e": "node --test \"tests/e2e/*.test.cjs\"",
-    "lint": "eslint js sidplayer.js tests",
-    "format": "prettier --write \"js/*.js\" sidplayer.js \"tests/**/*.{js,cjs}\""
+    "lint": "eslint js sidplayer.js tests tools/presence-bridge/relay",
+    "format": "prettier --write \"js/*.js\" sidplayer.js \"tests/**/*.{js,cjs}\" tools/presence-bridge/relay/relay.js"
   },
   "devDependencies": {
     "eslint": "^10.1.0",

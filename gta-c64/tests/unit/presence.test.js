@@ -7,7 +7,7 @@ import { BLK } from '../../js/config.js';
 import { districtAt, genMap } from '../../js/world.js';
 import { G, P, resetState } from '../../js/state.js';
 import { down } from '../../js/player.js';
-import { BRIDGE, SCHEMA_URL, describe, fit } from '../../js/presence.js';
+import { BRIDGE, RELAY_URL, SCHEMA_URL, describe, fit } from '../../js/presence.js';
 
 const schema = JSON.parse(
   readFileSync(new URL('../../tools/presence-bridge/schema.json', import.meta.url), 'utf8'),
@@ -194,6 +194,10 @@ async function rig(options = {}) {
     bridge: options.bridge || 'ok', // 'ok', 'down', or an HTTP status to answer with
     reply: { ok: true, app_id_configured: true, discord_connected: true },
     statuses: [],
+    timers: [],
+    opened: [], // every window the page asked to open
+    win: null, // the helper window, once opened
+    relayBridge: options.relayBridge || 'ok', // what the bridge does for the helper window: 'ok', 'down' or 'mute'
   };
   m.configurePresence({
     now: () => r.clock,
@@ -203,6 +207,32 @@ async function rig(options = {}) {
     storage: () => {
       if (options.storageThrows) throw new Error('storage is blocked');
       return { getItem: (k) => r.stored[k] ?? null, setItem: (k, v) => (r.stored[k] = v) };
+    },
+    after: (fn, ms) => {
+      const t = { fn, at: r.clock + ms };
+      r.timers.push(t);
+      return t;
+    },
+    clear: (t) => (r.timers = r.timers.filter((x) => x !== t)),
+    listen: (fn) => (r.deliver = fn),
+    open: (url, name, features) => {
+      r.opened.push({ url, name, features });
+      if (options.popupBlocked) return null;
+      // A stand-in for relay.js: it answers each request as the bridge would.
+      r.win = {
+        closed: false,
+        inbox: [],
+        postMessage(data, origin) {
+          this.inbox.push({ data, origin });
+          if (data.sb64 !== 'request' || r.relayBridge === 'mute') return;
+          const answer =
+            r.relayBridge === 'down'
+              ? { ok: false, status: 0, body: null }
+              : { ok: true, status: 200, body: r.reply };
+          Promise.resolve().then(() => r.fromWindow({ sb64: 'reply', id: data.id, ...answer }));
+        },
+      };
+      return r.win;
     },
     fetch: async (url, init = {}) => {
       r.calls.push({ url, method: init.method || 'GET', body: init.body, init });
@@ -217,9 +247,17 @@ async function rig(options = {}) {
   r.pass = async (seconds) => {
     for (let i = 0; i < seconds; i++) {
       r.clock += 1000;
+      for (const t of r.timers.filter((t) => t.at <= r.clock)) {
+        r.timers = r.timers.filter((x) => x !== t);
+        t.fn();
+      }
       await m.tick();
+      await settle();
     }
   };
+  /** A message to the page from the helper window, or from whoever `from` says. */
+  r.fromWindow = (data, from = {}) =>
+    r.deliver({ data, source: from.source || r.win, origin: from.origin || BRIDGE });
   r.toBridge = () => r.calls.filter((c) => c.url.startsWith(BRIDGE));
   return r;
 }
@@ -230,7 +268,7 @@ test('off by default: nothing is requested, however long the game runs', async (
   r.m.initPresence();
   await r.pass(120);
   assert.deepEqual(r.calls, []);
-  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'off' });
+  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'off', relay: false });
 });
 
 test('turning it on sends the state, then a heartbeat every ten seconds', async () => {
@@ -361,4 +399,148 @@ test('a hidden tab is reported as paused', async () => {
   r.hidden = true;
   await r.pass(1);
   assert.deepEqual(JSON.parse(r.toBridge().at(-1).body), { v: 1, mode: 'paused' });
+});
+
+// ---------- the helper window, for browsers that will not let the page reach the bridge (Safari) ----------
+
+/** The page asks the helper window to make a request: these are the ones it asked for. */
+const relayed = (r) => r.win.inbox.filter((m) => m.data.sb64 === 'request');
+
+test('the helper window is opened from a click and carries the game to the bridge', async () => {
+  const r = await rig();
+  r.m.initPresence();
+  r.m.openRelay();
+  assert.deepEqual(r.opened, [
+    { url: RELAY_URL, name: 'sleazeburg-presence', features: 'popup,width=480,height=320' },
+  ]);
+  assert.equal(r.m.presenceStatus().status, 'relay-waiting');
+  assert.equal(r.m.presenceStatus().enabled, true, 'opening it switches the setting on');
+  assert.equal(r.stored.sb64presence, '1');
+  assert.equal(r.stored.sb64presenceRelay, '1', 'remembered for next time');
+
+  r.fromWindow({ sb64: 'ready', v: 1 });
+  await settle();
+  await settle();
+  assert.equal(r.m.presenceStatus().status, 'connected');
+  assert.equal(r.m.presenceStatus().relay, true);
+  const first = relayed(r)[0];
+  assert.equal(first.origin, BRIDGE, 'only the helper window at the bridge address may read it');
+  assert.equal(first.data.method, 'POST');
+  assert.equal(JSON.parse(first.data.body).mode, 'roaming');
+  assert.deepEqual(r.toBridge(), [], 'nothing goes to the bridge directly');
+
+  await r.pass(60);
+  assert.equal(relayed(r).length, 7, 'heartbeats go through the window too');
+});
+
+test('only the helper window itself is listened to', async () => {
+  const r = await rig();
+  r.m.openRelay();
+  const stranger = { postMessage() {} };
+  r.fromWindow({ sb64: 'ready', v: 1 }, { origin: 'https://evil.example' });
+  r.fromWindow({ sb64: 'ready', v: 1 }, { source: stranger });
+  r.fromWindow('ready');
+  await settle();
+  assert.equal(r.m.presenceStatus().status, 'relay-waiting');
+  assert.equal(relayed(r).length, 0);
+  // An answer to a question the page never asked is ignored too.
+  r.fromWindow({ sb64: 'ready', v: 1 });
+  await settle();
+  await settle();
+  r.fromWindow({ sb64: 'reply', id: 999, ok: false, status: 403, body: null });
+  await settle();
+  assert.equal(r.m.presenceStatus().status, 'connected');
+});
+
+test('a helper window that never says hello is reported: no bridge, or one older than 0.2.0', async () => {
+  const r = await rig();
+  r.m.openRelay();
+  await r.pass(5);
+  assert.equal(r.m.presenceStatus().status, 'relay-waiting');
+  await r.pass(5);
+  assert.equal(r.m.presenceStatus().status, 'relay-silent');
+});
+
+test('a blocked pop-up is reported', async () => {
+  const r = await rig({ popupBlocked: true });
+  r.m.openRelay();
+  assert.equal(r.m.presenceStatus().status, 'relay-blocked');
+  await r.pass(30);
+  assert.deepEqual(r.toBridge(), [], 'and nothing is tried behind its back');
+});
+
+test('closing the helper window is noticed, and the button opens it again', async () => {
+  const r = await rig();
+  r.m.openRelay();
+  r.fromWindow({ sb64: 'ready', v: 1 });
+  await settle();
+  r.win.closed = true;
+  await r.pass(1);
+  assert.equal(r.m.presenceStatus().status, 'relay-closed');
+  assert.equal(r.m.presenceStatus().enabled, true);
+  r.m.openRelay();
+  r.fromWindow({ sb64: 'ready', v: 1 });
+  await settle();
+  await settle();
+  assert.equal(r.m.presenceStatus().status, 'connected');
+});
+
+test('when the bridge behind the helper window goes, or the window stops answering, that is reported', async () => {
+  const r = await rig({ relayBridge: 'down' });
+  r.m.openRelay();
+  r.fromWindow({ sb64: 'ready', v: 1 });
+  await settle();
+  await settle();
+  assert.equal(r.m.presenceStatus().status, 'relay-lost');
+
+  const mute = await rig({ relayBridge: 'mute' });
+  mute.m.openRelay();
+  mute.fromWindow({ sb64: 'ready', v: 1 });
+  await settle();
+  await mute.pass(5);
+  assert.equal(mute.m.presenceStatus().status, 'relay-lost');
+});
+
+test('switching off asks the helper window to clear the profile and close', async () => {
+  const r = await rig();
+  r.m.openRelay();
+  r.fromWindow({ sb64: 'ready', v: 1 });
+  await settle();
+  r.m.setPresence(false);
+  assert.deepEqual(r.win.inbox.at(-1), { data: { sb64: 'stop' }, origin: BRIDGE });
+  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'off', relay: false });
+  assert.deepEqual(r.toBridge(), []);
+});
+
+test('a browser that needed the helper window opens it again when switched on, until it is not needed', async () => {
+  const r = await rig({ stored: { sb64presenceRelay: '1' } });
+  r.m.setPresence(true);
+  assert.equal(r.opened.length, 1, 'the click opens the window straight away');
+
+  // On a later visit the setting comes back on by itself, with no click to open a window with, so the page
+  // tries the bridge directly. If that works this browser does not need the window after all.
+  const later = await rig({ stored: { sb64presence: '1', sb64presenceRelay: '1' } });
+  later.m.initPresence();
+  await settle();
+  assert.equal(later.opened.length, 0);
+  assert.equal(later.m.presenceStatus().status, 'connected');
+  assert.equal(later.stored.sb64presenceRelay, '0');
+});
+
+test('inside another website the setting will not switch on, so that site cannot trick the click', async () => {
+  const r = await rig();
+  r.m.configurePresence({ framed: () => true });
+  r.m.setPresence(true);
+  r.m.openRelay();
+  await r.pass(5);
+  assert.deepEqual(r.m.presenceStatus(), { enabled: false, status: 'framed', relay: false });
+  assert.deepEqual(r.calls, []);
+  assert.deepEqual(r.opened, []);
+  assert.equal(r.stored.sb64presence, undefined);
+  // Nor does a choice made earlier, in a tab of its own, start it there.
+  const earlier = await rig({ stored: { sb64presence: '1' } });
+  earlier.m.configurePresence({ framed: () => true });
+  earlier.m.initPresence();
+  await settle();
+  assert.deepEqual(earlier.calls, []);
 });
