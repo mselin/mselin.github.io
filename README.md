@@ -8,6 +8,7 @@ branch. There is no build step: what is in the repository is what gets published
 | Path | What it is | Published at |
 |---|---|---|
 | `index.html`, `style.css`, `script.js` | The homepage: how my homelab is built, what runs in it, music and projects | [/](https://mselin.github.io/) |
+| `favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `site.webmanifest` | The site icon: a terminal prompt. The `.ico` holds a hand-tuned 16 px version plus 32 and 48 px; the PNGs are for phone home screens. Pages without an icon of their own, such as the game, fall back to `/favicon.ico` | [/favicon.ico](https://mselin.github.io/favicon.ico) |
 | [`gta-c64/`](gta-c64/) | Sleazeburg 64, a top-down crime satire for the browser in the style of a Commodore 64 game. See its [README](gta-c64/README.md) | [/gta-c64/](https://mselin.github.io/gta-c64/) |
 | [`gta-c64/tools/presence-bridge/`](gta-c64/tools/presence-bridge/) | An optional program, written in Go, that shows what you are doing in the game on your Discord profile. See its [README](gta-c64/tools/presence-bridge/README.md) | Released as downloads, not as a page |
 | `.github/` | CI and release workflows, Dependabot settings and the repository check script | |
