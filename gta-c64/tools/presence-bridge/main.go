@@ -72,9 +72,12 @@ func main() {
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
 	if err != nil {
-		log.Fatalf("cannot listen on 127.0.0.1:%d: %v", *port, err)
+		log.Fatalf("cannot listen on 127.0.0.1:%d: %v\n"+
+			"If the port is in use, another copy of the bridge may already be running, for example as a "+
+			"service. If it is not, another program has the port, and the game would be talking to it: "+
+			"find out which before you use the game's Discord setting.", *port, err)
 	}
-	srv := &http.Server{Handler: &server{bridge: b, port: *port, origins: origins}, ReadHeaderTimeout: 5 * time.Second}
+	srv := newHTTPServer(&server{bridge: b, port: *port, origins: origins})
 	go srv.Serve(listener)
 	log.Printf("sleazeburg-presence %s listening on 127.0.0.1:%d", version, *port)
 	if *appID == "" {
@@ -95,6 +98,19 @@ func main() {
 			b.Close()
 			return
 		}
+	}
+}
+
+// newHTTPServer limits how long a connection may take and stay: without limits, a program on this computer
+// could hold connections open until the bridge has none left for the game.
+func newHTTPServer(h http.Handler) *http.Server {
+	return &http.Server{
+		Handler:           h,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    16 << 10,
 	}
 }
 

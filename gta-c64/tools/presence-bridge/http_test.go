@@ -17,12 +17,17 @@ const gameOrigin = "https://mselin.github.io"
 
 // listen starts the HTTP side of a rig on a free loopback port and returns its base URL.
 func (r *rig) listen() string {
+	return r.listenWith(defaultOrigins)
+}
+
+// listenWith is listen, allowing the given origins.
+func (r *rig) listenWith(origins []string) string {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		r.t.Fatal(err)
 	}
 	port := l.Addr().(*net.TCPAddr).Port
-	srv := &http.Server{Handler: &server{bridge: r.b, port: port, origins: defaultOrigins}}
+	srv := newHTTPServer(&server{bridge: r.b, port: port, origins: origins})
 	go srv.Serve(l)
 	r.t.Cleanup(func() { srv.Close() })
 	return fmt.Sprintf("http://127.0.0.1:%d", port)
@@ -149,8 +154,15 @@ func TestPreflightAndStatus(t *testing.T) {
 	if h.Get("Access-Control-Allow-Private-Network") != "" {
 		t.Error("unexpected Private Network Access header")
 	}
-	for _, origin := range []string{gameOrigin, "http://localhost:8064", ""} {
-		res, body := do(t, request{method: "GET", url: base + "/v1/status", origin: origin})
+	// The game, and a development copy allowed with -allow-origin, may read it; so may curl, with no Origin.
+	dev := r.listenWith([]string{gameOrigin, "http://localhost:8064"})
+	for _, q := range []request{
+		{method: "GET", url: base + "/v1/status", origin: gameOrigin},
+		{method: "GET", url: dev + "/v1/status", origin: "http://localhost:8064"},
+		{method: "GET", url: base + "/v1/status"},
+	} {
+		origin := q.origin
+		res, body := do(t, q)
 		if res.StatusCode != 200 || !strings.Contains(body, `"name":"sleazeburg-presence"`) || !strings.Contains(body, `"showing":false`) {
 			t.Errorf("status for origin %q: %d %s", origin, res.StatusCode, body)
 		}
@@ -159,5 +171,96 @@ func TestPreflightAndStatus(t *testing.T) {
 	port := strings.TrimPrefix(base, "http://127.0.0.1:")
 	if res, _ := do(t, request{method: "GET", url: base + "/v1/status", host: "localhost:" + port}); res.StatusCode != 200 {
 		t.Errorf("Host localhost: status %d", res.StatusCode)
+	}
+}
+
+func TestTheHelperWindowIsServedLockedDown(t *testing.T) {
+	r := newRig(t)
+	base := r.listen()
+	// A browser opening the window sends no Origin, for the page or for its script and style.
+	res, body := do(t, request{method: "GET", url: base + "/relay"})
+	if res.StatusCode != 200 || !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") {
+		t.Fatalf("GET /relay: %d %s", res.StatusCode, res.Header.Get("Content-Type"))
+	}
+	for name, want := range map[string]string{
+		"Content-Security-Policy": relayPolicy,
+		"X-Frame-Options":         "DENY",
+		"X-Content-Type-Options":  "nosniff",
+		"Referrer-Policy":         "no-referrer",
+		"Cache-Control":           "no-store",
+	} {
+		if got := res.Header.Get(name); got != want {
+			t.Errorf("%s: %q, want %q", name, got, want)
+		}
+	}
+	for _, part := range []string{"frame-ancestors 'none'", "script-src 'self'", "connect-src 'self'", "default-src 'none'"} {
+		if !strings.Contains(relayPolicy, part) {
+			t.Errorf("the policy lacks %s", part)
+		}
+	}
+	if res.Header.Get("Cross-Origin-Opener-Policy") != "" {
+		t.Error("an opener policy would cut the window off from the game")
+	}
+	if res.Header.Get("Access-Control-Allow-Origin") != "" {
+		t.Error("the window's page is not for other pages to read")
+	}
+	if !strings.Contains(body, `data-origins="https://mselin.github.io"`) {
+		t.Errorf("the page does not list the game's addresses:\n%s", body)
+	}
+	if !strings.Contains(body, `src="relay.js"`) || !strings.Contains(body, `href="relay.css"`) {
+		t.Errorf("the page does not load its script and style:\n%s", body)
+	}
+
+	for path, kind := range map[string]string{"/relay.js": "text/javascript", "/relay.css": "text/css"} {
+		res, body := do(t, request{method: "GET", url: base + path})
+		if res.StatusCode != 200 || !strings.HasPrefix(res.Header.Get("Content-Type"), kind) || len(body) < 100 {
+			t.Errorf("GET %s: %d %s, %d bytes", path, res.StatusCode, res.Header.Get("Content-Type"), len(body))
+		}
+		if res.Header.Get("Content-Security-Policy") != relayPolicy {
+			t.Errorf("%s has no policy", path)
+		}
+	}
+	// Nothing else is served without an Origin, the template behind the page included.
+	for _, path := range []string{"/relay.html", "/relay/relay.js", "/v1/presence", "/"} {
+		if res, _ := do(t, request{method: "GET", url: base + path}); res.StatusCode != 403 {
+			t.Errorf("GET %s without an Origin: %d", path, res.StatusCode)
+		}
+	}
+	// Nor from a hostname that is not this computer's (DNS rebinding).
+	if res, _ := do(t, request{method: "GET", url: base + "/relay", host: "evil.example:26464"}); res.StatusCode != 403 {
+		t.Errorf("GET /relay through another hostname: %d", res.StatusCode)
+	}
+	// Nor for another website to read.
+	if res, _ := do(t, request{method: "GET", url: base + "/relay", origin: "https://evil.example"}); res.StatusCode != 403 {
+		t.Errorf("GET /relay from another website: %d", res.StatusCode)
+	}
+}
+
+func TestTheHelperWindowCanUseTheBridgeAndNothingElseCanPretendTo(t *testing.T) {
+	r := newRig(t)
+	base := r.listen()
+	self := strings.Replace(base, "127.0.0.1", "localhost", 1)
+	for _, origin := range []string{base, self} {
+		res, body := do(t, post(base, origin, `{"v":1,"mode":"menu"}`))
+		if res.StatusCode != 200 {
+			t.Fatalf("POST from the window at %s: %d %s", origin, res.StatusCode, body)
+		}
+	}
+	if got := r.discord.seen(); len(got) != 1 {
+		t.Fatalf("Discord saw %v", got)
+	}
+	// Another program on another port of this computer is not the bridge's own page.
+	other := "http://127.0.0.1:1"
+	if res, _ := do(t, post(base, other, `{"v":1,"mode":"menu"}`)); res.StatusCode != 403 {
+		t.Errorf("POST from %s: %d", other, res.StatusCode)
+	}
+}
+
+func TestTheHelperWindowListsOriginsSafely(t *testing.T) {
+	r := newRig(t)
+	base := r.listenWith([]string{`https://x.example"><script>alert(1)</script>`})
+	_, body := do(t, request{method: "GET", url: base + "/relay"})
+	if strings.Contains(body, "<script>alert") {
+		t.Fatalf("an origin was written into the page unescaped:\n%s", body)
 	}
 }

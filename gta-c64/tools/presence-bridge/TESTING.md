@@ -27,10 +27,12 @@ Everything below has **not** been checked against real Discord.
 - [ ] From `https://mselin.github.io/gta-c64/` in Chrome, switching the setting on shows one permission
       prompt. Allow makes it work; Block leaves a clear message in the game.
 - [ ] Firefox: does the setting connect? Write down what happens.
+- [ ] The systemd unit starts with its restrictions, and `systemd-analyze --user security sleazeburg-presence`
+      reports no surprises.
 
 ## Windows (tester)
 
-- [ ] The download's SHA-256 matches `SHA256SUMS`.
+- [ ] The download's SHA-256 matches `SHA256SUMS`, and `gh attestation verify` accepts it (from 0.2.0).
 - [ ] The warning Windows shows for the unsigned file matches the README.
 - [ ] The file's Properties → Details show "Sleazeburg 64 presence bridge" and the release version.
 - [ ] It starts without administrator rights and finds the running Discord app.
@@ -45,7 +47,9 @@ Everything below has **not** been checked against real Discord.
 - [ ] It starts without administrator rights and finds the running Discord app.
 - [ ] With the setting on, the presence shows, follows the game and clears when the tab closes or the bridge
       quits.
-- [ ] Safari: does the setting connect? Write down what happens.
+- [ ] Safari: the setting says the helper program was not found and offers the helper window; the window
+      opens, the presence shows and follows the game, and closing the window clears it.
+- [ ] Firefox and Chrome connect directly, without the helper window.
 - [ ] `brew uninstall` and `brew untap` leave nothing behind.
 
 Until a system's list has passed, its release notes say that real Discord and the system warnings are

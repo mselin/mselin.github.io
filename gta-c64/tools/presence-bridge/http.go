@@ -3,15 +3,37 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"strings"
 )
 
-// The game's own address, plus where the game is served during development (npm start).
-var defaultOrigins = []string{"https://mselin.github.io", "http://localhost:8064", "http://127.0.0.1:8064"}
+// The game's own address. Anywhere else, such as a development copy (npm start serves it at
+// http://localhost:8064), has to be allowed with -allow-origin.
+var defaultOrigins = []string{"https://mselin.github.io"}
+
+// The helper window, for browsers that will not let the game's https page reach http://127.0.0.1 (Safari).
+// The game opens it at /relay and talks to it with postMessage; it passes the game's requests on from here.
+//
+//go:embed relay
+var relayFiles embed.FS
+
+var relayPage = template.Must(template.ParseFS(relayFiles, "relay/relay.html"))
+
+// relayAssets are the helper window's other files, by path, with their types.
+var relayAssets = map[string]string{
+	"/relay.js":  "text/javascript; charset=utf-8",
+	"/relay.css": "text/css; charset=utf-8",
+}
+
+// The helper window may load its own script and style and talk to the bridge, and nothing else. No page may
+// frame it. (It must not set Cross-Origin-Opener-Policy: that would cut it off from the game that opened it.)
+const relayPolicy = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; " +
+	"base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 
 type server struct {
 	bridge  *Bridge
@@ -25,14 +47,20 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "wrong host", http.StatusForbidden)
 		return
 	}
+	// Nothing the bridge answers is to be cached, or read as anything but what it says it is.
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Cache-Control", "no-store")
 	origin := r.Header.Get("Origin")
-	if origin != "" && !contains(s.origins, origin) {
+	// The bridge's own pages (the helper window) may use it too: only the bridge can serve a page there.
+	self := origin == fmt.Sprintf("http://127.0.0.1:%d", s.port) || origin == fmt.Sprintf("http://localhost:%d", s.port)
+	if origin != "" && !self && !contains(s.origins, origin) {
 		// No CORS headers on a refusal, so the page that asked learns nothing.
 		http.Error(w, "this origin may not use the bridge", http.StatusForbidden)
 		return
 	}
-	// Only a request with no Origin at all (curl, not a browser) may read the status without one.
-	if origin == "" && !(r.Method == http.MethodGet && r.URL.Path == "/v1/status") {
+	// Only the status, read by curl, and the helper window's files, which a browser fetches without an Origin
+	// when it opens the window, may be had without one.
+	if origin == "" && !(r.Method == http.MethodGet && (r.URL.Path == "/v1/status" || isRelayFile(r.URL.Path))) {
 		http.Error(w, "an Origin header is required", http.StatusForbidden)
 		return
 	}
@@ -48,6 +76,13 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodGet && r.URL.Path == "/v1/status":
 		s.reply(w)
+	case r.Method == http.MethodGet && r.URL.Path == "/relay":
+		relayHeaders(w, "text/html; charset=utf-8")
+		relayPage.Execute(w, struct{ Origins string }{strings.Join(s.origins, " ")})
+	case r.Method == http.MethodGet && relayAssets[r.URL.Path] != "":
+		body, _ := relayFiles.ReadFile("relay" + r.URL.Path)
+		relayHeaders(w, relayAssets[r.URL.Path])
+		w.Write(body)
 	case r.Method == http.MethodPost && r.URL.Path == "/v1/presence":
 		// Insisting on JSON means a browser must ask permission (a preflight) before it may send this.
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
@@ -72,6 +107,20 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+func isRelayFile(path string) bool {
+	return path == "/relay" || relayAssets[path] != ""
+}
+
+func relayHeaders(w http.ResponseWriter, contentType string) {
+	h := w.Header()
+	h.Set("Content-Type", contentType)
+	h.Set("Content-Security-Policy", relayPolicy)
+	h.Set("X-Frame-Options", "DENY")
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("Referrer-Policy", "no-referrer")
+	h.Set("Cache-Control", "no-store") // a newer bridge's window, not a remembered older one
 }
 
 func (s *server) reply(w http.ResponseWriter) {

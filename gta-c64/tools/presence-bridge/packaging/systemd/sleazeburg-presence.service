@@ -22,13 +22,20 @@ Restart=on-failure
 RestartSec=5
 
 # It needs a loopback port and Discord's socket, and nothing else. These restrictions work in a user
-# service without extra privileges.
+# service without extra privileges. Options that need a mount or user namespace (ProtectSystem=, ProtectHome=,
+# PrivateTmp= and the like) are left out on purpose: in a user service they depend on unprivileged user
+# namespaces, which some distributions restrict, and the service would then fail to start.
 NoNewPrivileges=yes
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictAddressFamilies=AF_UNIX AF_INET
 LockPersonality=yes
 MemoryDenyWriteExecute=yes
 RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
 SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+UMask=0077
 
 [Install]
 WantedBy=graphical-session.target

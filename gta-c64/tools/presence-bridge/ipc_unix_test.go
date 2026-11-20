@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -73,5 +74,78 @@ func TestNoDiscordIsAnErrorNotAHang(t *testing.T) {
 	t.Setenv("XDG_RUNTIME_DIR", dir)
 	if _, err := dialDiscord(); err == nil {
 		t.Error("found a Discord that is not there")
+	}
+}
+
+// fileInfo stands in for what Lstat returns, to check owners the tests cannot create.
+type fileInfo struct {
+	mode os.FileMode
+	uid  uint32
+}
+
+func (f fileInfo) Name() string       { return "discord-ipc-0" }
+func (f fileInfo) Size() int64        { return 0 }
+func (f fileInfo) Mode() os.FileMode  { return f.mode }
+func (f fileInfo) ModTime() time.Time { return time.Time{} }
+func (f fileInfo) IsDir() bool        { return f.mode.IsDir() }
+func (f fileInfo) Sys() any           { return &syscall.Stat_t{Uid: f.uid} }
+
+func TestOnlyTheUsersOwnSocketIsUsed(t *testing.T) {
+	me := uint32(os.Getuid())
+	if !ownSocket(fileInfo{os.ModeSocket | 0o755, me}, int(me)) {
+		t.Error("the user's own socket was refused")
+	}
+	if ownSocket(fileInfo{os.ModeSocket | 0o777, me + 1}, int(me)) {
+		t.Error("another user's socket was accepted")
+	}
+	if ownSocket(fileInfo{0o644, me}, int(me)) {
+		t.Error("a plain file was accepted as a socket")
+	}
+
+	// End to end: a file where the socket should be is not dialled.
+	dir := t.TempDir()
+	fake := filepath.Join(dir, "discord-ipc-0")
+	if err := os.WriteFile(fake, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := dialIPC(fake); err == nil {
+		t.Error("dialled something that is not a socket")
+	}
+	// Nor a link to a real socket, which could point anywhere.
+	listener, err := net.Listen("unix", filepath.Join(dir, "real"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	link := filepath.Join(dir, "discord-ipc-1")
+	if err := os.Symlink(filepath.Join(dir, "real"), link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := dialIPC(link); err == nil {
+		t.Error("followed a link to a socket")
+	}
+}
+
+func TestTheClaimDirectoryMustBePrivate(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if !privateDir(dir) {
+		t.Error("a private directory was refused")
+	}
+	if err := os.Chmod(dir, 0o777); err != nil {
+		t.Fatal(err)
+	}
+	if privateDir(dir) {
+		t.Error("a directory anyone can write in was accepted")
+	}
+	os.Chmod(dir, 0o700)
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(dir, link); err != nil {
+		t.Fatal(err)
+	}
+	if privateDir(link) {
+		t.Error("a link to a directory was accepted")
 	}
 }

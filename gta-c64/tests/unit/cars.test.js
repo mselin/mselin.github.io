@@ -58,7 +58,8 @@ test('holding reverse backs the car up, slower than it drives forward', () => {
 test('gentle steering does not slide, the handbrake at speed does', () => {
   const gentle = onRoad(KIND.sports);
   drive(gentle, 1, 1);
-  drive(gentle, 0.3, 1, 0.3);
+  // Towards the middle of the road: the other way is the edge of the map, 8 pixels off.
+  drive(gentle, 0.3, 1, -0.3);
   assert.ok(gentle.slide < 5, `gentle slide ${gentle.slide}`);
   assert.equal(gentle.sk, null, 'no skid marks');
 
