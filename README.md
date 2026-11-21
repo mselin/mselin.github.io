@@ -21,6 +21,7 @@ project site under this address:
 |---|---|---|
 | Sleazeburg 64, a top-down crime satire for the browser in the style of a Commodore 64 game, with its Discord presence bridge and desktop app | [mselin/gta-c64](https://github.com/mselin/gta-c64) | [/gta-c64/](https://mselin.github.io/gta-c64/) |
 | Sleazeburg 64 for a real Commodore 64, in 6502 assembly | [mselin/Sleazeburg64](https://github.com/mselin/Sleazeburg64) | [/Sleazeburg64/](https://mselin.github.io/Sleazeburg64/) |
+| Horse, a Thoroughbred sculpted, rigged, groomed and animated entirely in code, in the browser with three.js | [mselin/horse](https://github.com/mselin/horse) | [/horse/](https://mselin.github.io/horse/) |
 
 The browser game lived in this repository's `gta-c64/` folder until 20 November 2026, and moved, with its
 history, to its own repository at the same address. Version 0.1.0 of its presence bridge was released from
