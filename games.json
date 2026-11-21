@@ -14,6 +14,13 @@
       "play": "https://mselin.github.io/Sleazeburg64/",
       "source": "https://github.com/mselin/Sleazeburg64",
       "tags": ["6502 assembly", "64tass", "VICE"]
+    },
+    {
+      "name": "Horse",
+      "summary": "A Thoroughbred sculpted, rigged, groomed and animated entirely in code: walk, trot, canter and gallop it across a golden-hour prairie, steer it and change its coat. No models, textures or motion capture.",
+      "play": "https://mselin.github.io/horse/",
+      "source": "https://github.com/mselin/horse",
+      "tags": ["JavaScript", "three.js", "WebGL2", "Procedural"]
     }
   ]
 }
