@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """The games, from games.json, on the homepage and the profile page.
 
+An entry needs a name, a summary, a source link and tags. "play" is where it runs in a browser; an entry
+without it (an app for a device, say) gets a Source link only.
+
   games.py             write the homepage's game cards into index.html, between the games markers
   games.py --check     fail if index.html does not match games.json (CI)
   games.py --markdown  print the rows for the games table on the profile page (github.com/mselin/mselin)
@@ -20,10 +23,10 @@ START, END = "<!-- games: written by .github/scripts/games.py from games.json --
 def load(path=ROOT / "games.json"):
     games = json.loads(path.read_text(encoding="utf-8"))["games"]
     for g in games:
-        missing = {"name", "summary", "play", "source", "tags"} - g.keys()
+        missing = {"name", "summary", "source", "tags"} - g.keys()
         if missing:
             raise ValueError(f"{g.get('name', '?')}: missing {', '.join(sorted(missing))}")
-        for url in (g["play"], g["source"]):
+        for url in filter(None, (g.get("play"), g["source"])):
             if not url.startswith("https://"):
                 raise ValueError(f"{g['name']}: links must be https: {url}")
     return games
@@ -31,7 +34,8 @@ def load(path=ROOT / "games.json"):
 
 def card(g):
     e = lambda s: html.escape(s, quote=True)
-    tags = f'<a href="{e(g["play"])}">Play</a><a href="{e(g["source"])}">Source</a>'
+    tags = f'<a href="{e(g["play"])}">Play</a>' if g.get("play") else ""
+    tags += f'<a href="{e(g["source"])}">Source</a>'
     tags += "".join(f"<span>{e(t)}</span>" for t in g["tags"])
     return f'    <div class="card"><h3>{e(g["name"])}</h3><p>{e(g["summary"])}</p><div class="tags">{tags}</div></div>'
 
@@ -47,7 +51,10 @@ def homepage(page, games):
 
 
 def markdown_row(g):
-    """One row of the profile page's table."""
+    """One row of the profile page's table. Its first cell links to where the game is played, or to the
+    source when there is nothing to play."""
+    if not g.get("play"):
+        return f'| **[{g["name"]}]({g["source"]})** | {g["summary"]} [Source]({g["source"]}) |'
     return f'| **[{g["name"]}]({g["play"]})** | {g["summary"]} [Play it]({g["play"]}) · [Source]({g["source"]}) |'
 
 

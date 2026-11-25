@@ -1,5 +1,5 @@
 {
-  "about": "The games on the homepage and the profile page. .github/scripts/games.py writes the homepage's game cards from this file, and CI checks both pages match it.",
+  "about": "The games on the homepage and the profile page. .github/scripts/games.py writes the homepage's game cards from this file, and CI checks both pages match it. \"play\" is optional: an entry without it has nothing to play in a browser and gets a Source link only.",
   "games": [
     {
       "name": "Sleazeburg 64",
@@ -21,6 +21,12 @@
       "play": "https://mselin.github.io/horse/",
       "source": "https://github.com/mselin/horse",
       "tags": ["JavaScript", "three.js", "WebGL2", "Procedural"]
+    },
+    {
+      "name": "SidPlayZero",
+      "summary": "Work in progress: a SID player for the M5Stack CardputerZero, a pocket Linux computer with a 320×170 screen and a keyboard. It will browse the High Voltage SID Collection and play the tunes with the sidplayfp engine. So far, requirements.",
+      "source": "https://github.com/mselin/sidplayzero",
+      "tags": ["CardputerZero", "LVGL", "sidplayfp", "HVSC"]
     }
   ]
 }
