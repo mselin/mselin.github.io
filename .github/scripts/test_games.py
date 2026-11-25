@@ -20,6 +20,11 @@ class Games(unittest.TestCase):
         self.assertIn("<h3>A &amp; B</h3><p>&lt;x&gt;</p>", c)
         self.assertIn('<a href="https://p/">Play</a><a href="https://s/">Source</a><span>t</span>', c)
 
+    def test_a_card_without_play_has_a_source_link_only(self):
+        c = games.card({"name": "N", "summary": "S", "source": "https://s/", "tags": ["t"]})
+        self.assertIn('<div class="tags"><a href="https://s/">Source</a><span>t</span></div>', c)
+        self.assertNotIn("Play", c)
+
     def test_writing_the_cards_twice_changes_nothing(self):
         page = f"<div>\n    {games.START}\n    old\n    {games.END}\n</div>"
         g = [{"name": "N", "summary": "S", "play": "https://p/", "source": "https://s/", "tags": []}]
@@ -40,10 +45,23 @@ class Games(unittest.TestCase):
             path.write_text(json.dumps({"games": [{"name": "N"}]}))
             with self.assertRaises(ValueError):
                 games.load(path)
+            path.write_text(json.dumps({"games": [{"name": "N", "summary": "S", "source": "http://s/", "tags": []}]}))
+            with self.assertRaises(ValueError):
+                games.load(path)
+
+    def test_play_is_optional(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "games.json"
+            path.write_text(json.dumps({"games": [{"name": "N", "summary": "S", "source": "https://s/", "tags": []}]}))
+            self.assertEqual(games.load(path)[0]["name"], "N")
 
     def test_the_profile_row(self):
         row = games.markdown_row({"name": "N", "summary": "S.", "play": "https://p/", "source": "https://s/", "tags": []})
         self.assertEqual(row, "| **[N](https://p/)** | S. [Play it](https://p/) · [Source](https://s/) |")
+
+    def test_the_profile_row_without_play_links_to_the_source(self):
+        row = games.markdown_row({"name": "N", "summary": "S.", "source": "https://s/", "tags": []})
+        self.assertEqual(row, "| **[N](https://s/)** | S. [Source](https://s/) |")
 
 
 if __name__ == "__main__":

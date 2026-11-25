@@ -23,6 +23,9 @@ project site under this address:
 | Sleazeburg 64 for a real Commodore 64, in 6502 assembly | [mselin/Sleazeburg64](https://github.com/mselin/Sleazeburg64) | [/Sleazeburg64/](https://mselin.github.io/Sleazeburg64/) |
 | Horse, a Thoroughbred sculpted, rigged, groomed and animated entirely in code, in the browser with three.js | [mselin/horse](https://github.com/mselin/horse) | [/horse/](https://mselin.github.io/horse/) |
 
+SidPlayZero is listed with the games, but it is an app for the M5Stack CardputerZero and not a web page, so
+nothing of it is published here. Its repository is [mselin/sidplayzero](https://github.com/mselin/sidplayzero).
+
 The browser game lived in this repository's `gta-c64/` folder until 20 November 2026, and moved, with its
 history, to its own repository at the same address. Version 0.1.0 of its presence bridge was released from
 here, under the tag `gta-c64/tools/presence-bridge/v0.1.0`; later versions are released from the game's
@@ -83,7 +86,8 @@ update them.
 
 ## The games
 
-[`games.json`](games.json) lists the games, and both pages that show them follow it:
+[`games.json`](games.json) lists the games, and both pages that show them follow it. An entry's `play` link
+is optional: one without it has nothing to play in a browser, and gets a Source link only.
 
 - **The homepage.** Its game cards, between the `games` markers in `index.html`, are written from the file by
   [`.github/scripts/games.py`](.github/scripts/games.py). After changing `games.json`, run it and commit both:
