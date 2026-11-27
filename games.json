@@ -24,7 +24,7 @@
     },
     {
       "name": "SidPlayZero",
-      "summary": "Work in progress: a SID player for the M5Stack CardputerZero, a pocket Linux computer with a 320×170 screen and a keyboard. It will browse the High Voltage SID Collection and play the tunes with the sidplayfp engine. So far, requirements.",
+      "summary": "Work in progress: a SID player for the M5Stack CardputerZero, a pocket Linux computer with a 320×170 screen and a keyboard. It browses the High Voltage SID Collection and plays the tunes with the sidplayfp engine. The app is written and tested; a first release follows a trial on the device.",
       "source": "https://github.com/mselin/sidplayzero",
       "tags": ["CardputerZero", "LVGL", "sidplayfp", "HVSC"]
     }
